@@ -1,7 +1,7 @@
 # Incremental Sentence Processing Mechanisms in Autoregressive Transformer Language Models
 
-This repo provides the code for the paper *Incremental Sentence Processing Mechanisms in Autoregressive
-Transformer Language Models*. Using this code, you should be able to replicate all of the experiments in the paper, though some of the data used (in particular the Penn Treebank) is not publicly / freely available, and external data (that does not originate from this project) should be downloaded from its source.
+This repo provides the code for the paper [*Incremental Sentence Processing Mechanisms in Autoregressive
+Transformer Language Models*](https://arxiv.org/abs/2412.05353). Using this code, you should be able to replicate all of the experiments in the paper, though some of the data used (in particular the Penn Treebank) is not publicly / freely available, and external data (that does not originate from this project) should be downloaded from its source.
 
 ## Replicate our Results
 
@@ -56,8 +56,18 @@ As part of this project, we created the following data files:
 
 ## Citation
 
-Coming soon!
-
+This paper is only available as [a preprint](https://arxiv.org/abs/2412.05353) for now; you can cite it like this:
+```
+@misc{hanna2024incremental,
+      title={Incremental Sentence Processing Mechanisms in Autoregressive Transformer Language Models}, 
+      author={Michael Hanna and Aaron Mueller},
+      year={2024},
+      eprint={2412.05353},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2412.05353}, 
+}
+```
 ## License
 
 We release our materials under an MIT license.

@@ -10,7 +10,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from gp_notebook.behavior import MODEL_NAME, aggregate_behavioral_summary, evaluate_dataset
-from gp_notebook.device import get_torch_device, live_mode_available
+from gp_notebook.device import detect_device_info, get_torch_device
 from gp_notebook.features import category_counts, representative_activation_matrix
 from gp_notebook.interventions import paper_style_interventions, saes_available
 from gp_notebook.paths import ASSETS_DIR, ensure_assets_dir, load_gp_dataset
@@ -74,11 +74,15 @@ def save_activation_caches() -> None:
 
 def save_metadata() -> None:
     """Persist environment metadata for the notebook status banner."""
+    device_info = detect_device_info()
     meta = {
         "model_name": MODEL_NAME,
-        "cuda_available": live_mode_available(),
+        "cuda_available": device_info["kind"] == "cuda",
+        "live_mode_available": device_info["live_mode_available"],
+        "device_kind": device_info["kind"],
+        "device_name": device_info["device_name"],
         "saes_available": saes_available(),
-        "device": str(get_torch_device()),
+        "device": device_info["device"],
     }
     with (ASSETS_DIR / "metadata.json").open("w", encoding="utf-8") as handle:
         json.dump(meta, handle, indent=2)

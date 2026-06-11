@@ -17,10 +17,6 @@ from gp_notebook.behavior import MODEL_NAME, continuation_tokens_for_condition
 from gp_notebook.device import get_torch_device, live_mode_available
 from gp_notebook.paths import FEATURE_RESULTS, PROJECT_ROOT
 
-# Make dictionary_learning importable the same way as the original repo scripts.
-sys.path.insert(0, str(PROJECT_ROOT / "feature-circuits-gp"))
-from dictionary_learning import dictionary  # noqa: E402
-
 FeatureEdit = Tuple[int, int, float]
 FeatureMap = Dict[str, List[FeatureEdit]]
 
@@ -49,8 +45,22 @@ def _runtime_device() -> torch.device:
     return get_torch_device()
 
 
-def load_autoencoder(model_name: str, submodule_name: str) -> dictionary.AutoEncoder:
+def _dictionary_module():
+    """Import dictionary_learning once the feature-circuits-gp submodule is present."""
+    submodule_root = PROJECT_ROOT / "feature-circuits-gp"
+    if not (submodule_root / "dictionary_learning").exists():
+        raise ModuleNotFoundError(
+            "dictionary_learning not found. Run: git submodule update --init --recursive"
+        )
+    sys.path.insert(0, str(submodule_root))
+    from dictionary_learning import dictionary
+
+    return dictionary
+
+
+def load_autoencoder(model_name: str, submodule_name: str):
     """Load a Pythia-70m sparse autoencoder checkpoint for one submodule."""
+    dictionary = _dictionary_module()
     device = _runtime_device()
     if submodule_name == "embed":
         ae_path = (

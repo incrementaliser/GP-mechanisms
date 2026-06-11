@@ -46,12 +46,12 @@ def _(mo):
             "7 — Repair vs reanalysis (RQ3)": "m7",
             "8 — Extensions": "m8",
         },
-        value="m1",
+        value="1 — Feel the garden path",
         label="Section",
     )
     status = device_status_message()
     banner = mo.callout(
-        status if live_mode_available() else "CPU / no CUDA — precomputed caches used by default.",
+        status if live_mode_available() else "No GPU/MPS detected — precomputed caches used by default.",
         kind="info" if live_mode_available() else "warn",
     )
     sidebar = mo.sidebar(
@@ -147,12 +147,12 @@ def _(gp_df, mo, reading_bubbles_html, show_m1, token_reveal_html):
     mo.stop(not show_m1)
     structure = mo.ui.dropdown(
         options={"NP/Z (subordinate clause)": "NPZ", "NP/S (sentential complement)": "NPS"},
-        value="NPZ",
+        value="NP/Z (subordinate clause)",
         label="Structure",
     )
     verb_type = mo.ui.radio(
         options={"Ambiguous verb": "ambiguous", "GP-forcing verb": "gp", "Non-GP verb": "post"},
-        value="ambiguous",
+        value="Ambiguous verb",
         label="Verb type",
         inline=True,
     )
@@ -294,12 +294,12 @@ def _(category_counts, circuit_svg, enrich_feature_table, layer_narrative, mo, s
     mo.stop(not show_m4)
     circuit_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NPZ",
+        value="NP/Z",
         label="Circuit",
     )
     category_filter = mo.ui.dropdown(
         options={"All categories": "all", "Syntactic only": "syntactic"},
-        value="all",
+        value="All categories",
         label="Filter",
     )
     return category_filter, circuit_condition
@@ -352,7 +352,7 @@ def _(interventions_df, live_switch, mo, show_m5):
     mo.stop(not show_m5)
     sandbox_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NPZ",
+        value="NP/Z",
         label="Structure",
     )
     subject_slider = mo.ui.slider(-3.0, 3.0, value=2.0, step=0.1, label="Subject detector amp")
@@ -466,7 +466,7 @@ def _(activation_heatmap, mo, representative_activation_matrix, show_m6):
     mo.stop(not show_m6)
     rq2_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NPZ",
+        value="NP/Z",
         label="Structure",
     )
     return (rq2_condition,)
@@ -560,7 +560,7 @@ def _(faithfulness_tradeoff, live_switch, mo, score_sentence, show_m8):
     )
     custom_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NPZ",
+        value="NP/Z",
         label="Structure type",
     )
     score_button = mo.ui.run_button(label="Score sentence")

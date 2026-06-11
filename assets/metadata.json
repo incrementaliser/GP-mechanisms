@@ -1,0 +1,6 @@
+{
+  "model_name": "EleutherAI/pythia-70m-deduped",
+  "cuda_available": false,
+  "saes_available": true,
+  "device": "cpu"
+}

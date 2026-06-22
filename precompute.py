@@ -72,6 +72,74 @@ def save_activation_caches() -> None:
         )
 
 
+def save_token_activation_caches() -> None:
+    """Cache real SAE per-token activations for annotated syntactic features."""
+    if not saes_available():
+        print("SAEs unavailable — skipping token activation caches.")
+        return
+    try:
+        from gp_notebook.interventions import feature_token_activations
+        for condition in ("NPZ", "NPS"):
+            df = feature_token_activations(condition)
+            df.to_parquet(ASSETS_DIR / f"token_activations_{condition.lower()}.parquet", index=False)
+            print(f"  token_activations_{condition.lower()}.parquet: {len(df)} rows")
+    except Exception as exc:  # noqa: BLE001
+        print(f"Token activation precompute failed ({exc}); skipping.")
+
+
+def save_attention_caches() -> None:
+    """Cache Pythia attention patterns for representative sentences."""
+    try:
+        from gp_notebook.interventions import attention_patterns_for_sentence
+        df = load_gp_dataset()
+        for condition in ("NPZ", "NPS"):
+            sentence = df[df["condition"] == condition]["sentence_ambiguous"].iloc[0]
+            patterns = attention_patterns_for_sentence(sentence)
+            path = ASSETS_DIR / f"attention_{condition.lower()}.json"
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(patterns, f)
+            print(f"  attention_{condition.lower()}.json: {len(patterns['tokens'])} tokens")
+    except Exception as exc:  # noqa: BLE001
+        print(f"Attention precompute failed ({exc}); skipping.")
+
+
+def save_attribution_caches(device: torch.device) -> None:
+    """Cache captum integrated-gradients token attributions."""
+    try:
+        from gp_notebook.attribution import token_attributions
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        model = AutoModelForCausalLM.from_pretrained(MODEL_NAME).to(device)
+        model.eval()
+        df = load_gp_dataset()
+        for condition in ("NPZ", "NPS"):
+            sentence = df[df["condition"] == condition]["sentence_ambiguous"].iloc[0]
+            result = token_attributions(model, tokenizer, sentence, condition, device=device, n_steps=15)
+            path = ASSETS_DIR / f"attributions_{condition.lower()}.json"
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(result, f)
+            print(f"  attributions_{condition.lower()}.json: {len(result['tokens'])} tokens")
+    except Exception as exc:  # noqa: BLE001
+        print(f"Attribution precompute failed ({exc}); skipping.")
+
+
+def save_prefix_probability_caches(device: torch.device) -> None:
+    """Cache p(GP)/p(non-GP) at each incremental prefix for commitment timeline."""
+    try:
+        from gp_notebook.attribution import compute_prefix_probabilities
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        model = AutoModelForCausalLM.from_pretrained(MODEL_NAME).to(device)
+        model.eval()
+        df = load_gp_dataset()
+        for condition in ("NPZ", "NPS"):
+            sentence = df[df["condition"] == condition]["sentence_ambiguous"].iloc[0]
+            probs = compute_prefix_probabilities(model, tokenizer, sentence, condition, device=device)
+            result = pd.DataFrame(probs)
+            result.to_parquet(ASSETS_DIR / f"prefix_probs_{condition.lower()}.parquet", index=False)
+            print(f"  prefix_probs_{condition.lower()}.parquet: {len(result)} prefixes")
+    except Exception as exc:  # noqa: BLE001
+        print(f"Prefix probability precompute failed ({exc}); skipping.")
+
+
 def save_metadata() -> None:
     """Persist environment metadata for the notebook status banner."""
     device_info = detect_device_info()
@@ -96,6 +164,11 @@ def main() -> None:
     save_behavioral_caches(device)
     save_intervention_caches()
     save_activation_caches()
+    print("Computing new visualization caches...")
+    save_token_activation_caches()
+    save_attention_caches()
+    save_attribution_caches(device)
+    save_prefix_probability_caches(device)
     save_metadata()
     print(f"Caches written to {ASSETS_DIR}")
 

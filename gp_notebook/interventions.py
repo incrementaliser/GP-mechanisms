@@ -267,6 +267,99 @@ def run_intervention_suite(
     }
 
 
+def feature_token_activations(
+    condition: str,
+    *,
+    model: LanguageModel | None = None,
+    tokenizer: AutoTokenizer | None = None,
+) -> pd.DataFrame:
+    """Record real per-token SAE activations of annotated syntactic features on ambiguous sentences."""
+    from gp_notebook.features import enrich_feature_table
+
+    model_name = MODEL_NAME
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    device = _runtime_device()
+    if model is None:
+        model = LanguageModel(model_name, torch_dtype=torch.float32, device_map=str(device), dispatch=True)
+    dictionaries = load_dictionaries(model_name, model)
+
+    feature_df = enrich_feature_table(condition)
+    syntactic = feature_df[feature_df["reading_side"].isin({"pro_gp", "anti_gp"})].copy()
+
+    from gp_notebook.paths import load_gp_dataset
+    gp_df = load_gp_dataset()
+    prompts = gp_df[gp_df["condition"] == condition]["sentence_ambiguous"].tolist()[:3]
+
+    rows: list[dict] = []
+    for prompt in prompts:
+        tok_ids = tokenizer(prompt, return_tensors="pt")["input_ids"]
+        tok_strings = tokenizer.convert_ids_to_tokens(tok_ids[0].tolist())
+        with model.trace(prompt), torch.no_grad():
+            saved_encodings: dict[str, torch.Tensor] = {}
+            for submod_name, (submodule, ae) in dictionaries.items():
+                x = submodule.output
+                if isinstance(x, tuple):
+                    x = x[0]
+                saved_encodings[submod_name] = ae.encode(x).save()
+
+        for _, feat in syntactic.iterrows():
+            submod_name = feat["submodule"]
+            feat_idx = int(feat["feature_idx"])
+            encoding = saved_encodings.get(submod_name)
+            if encoding is None:
+                continue
+            val = encoding.value if hasattr(encoding, "value") else encoding
+            seq_len = val.shape[1]
+            for pos in range(seq_len):
+                act_val = float(val[0, pos, feat_idx].item())
+                tok_label = tok_strings[pos] if pos < len(tok_strings) else f"pos_{pos}"
+                rows.append({
+                    "feature": feat["Annotation"],
+                    "category": feat["Category"],
+                    "reading_side": feat["reading_side"],
+                    "position": pos,
+                    "token": tok_label,
+                    "activation": act_val,
+                    "sentence": prompt,
+                })
+    return pd.DataFrame(rows)
+
+
+def attention_patterns_for_sentence(
+    sentence: str,
+    *,
+    model: LanguageModel | None = None,
+    tokenizer: AutoTokenizer | None = None,
+) -> dict:
+    """Capture attention weights for all layers of Pythia-70m on one sentence."""
+    import numpy as np
+
+    model_name = MODEL_NAME
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    device = _runtime_device()
+    if model is None:
+        model = LanguageModel(model_name, torch_dtype=torch.float32, device_map=str(device), dispatch=True)
+
+    tok_ids = tokenizer(sentence, return_tensors="pt")["input_ids"]
+    tok_strings = tokenizer.convert_ids_to_tokens(tok_ids[0].tolist())
+
+    with model.trace(sentence), torch.no_grad():
+        attn_saves = {}
+        for layer_idx in range(6):
+            attn_out = model.gpt_neox.layers[layer_idx].attention
+            attn_saves[layer_idx] = attn_out.output.save()
+
+    patterns: dict[str, list] = {"tokens": tok_strings, "layers": {}}
+    for layer_idx, saved in attn_saves.items():
+        val = saved.value if hasattr(saved, "value") else saved
+        if isinstance(val, tuple):
+            val = val[0]
+        patterns["layers"][str(layer_idx)] = val.squeeze(0).detach().cpu().numpy().tolist()
+    return patterns
+
+
 def paper_style_interventions(df: pd.DataFrame) -> pd.DataFrame:
     """Reproduce baseline, syntactic, and random interventions for NPZ and NPS."""
     rows: list[dict[str, float | str]] = []

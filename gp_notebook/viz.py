@@ -21,8 +21,25 @@ _PAPER_LINKS_HTML = """
 </div>
 """
 
+_PAPER_LINKS_COMPACT_HTML = """
+<div class="gp-header__links" style="font-size:0.84rem;color:#475569;text-align:right;
+     white-space:nowrap;flex-shrink:0;">
+  <a href="https://www.alphaxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
+     text-decoration:none;">alphaXiv</a>
+  · <a href="https://arxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
+     text-decoration:none;">arXiv:2412.05353</a>
+  · Hanna &amp; Mueller, NAACL 2025
+</div>
+"""
+
 _HERO_CARD_STYLE = """
   padding:28px 24px; border-radius:12px;
+  background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fef3c7 100%);
+  border:1px solid rgba(148,163,184,0.35);
+"""
+
+_COMPACT_CARD_STYLE = """
+  padding:18px 24px; border-radius:12px;
   background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fef3c7 100%);
   border:1px solid rgba(148,163,184,0.35);
 """
@@ -33,13 +50,28 @@ def notebook_header_compact_html() -> str:
     return f"""
 <style>
   .gp-header {{ color:#1f2937; margin:0 0 20px; font-family:system-ui,sans-serif; }}
+  .gp-header__row {{
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+  }}
+  .gp-header__title {{
+    margin:0; font-size:2rem; line-height:1.1; font-weight:850; white-space:nowrap;
+  }}
+  @media (max-width:760px) {{
+    .gp-header__row {{
+      flex-direction:column; align-items:flex-start; gap:10px;
+    }}
+    .gp-header__links {{
+      text-align:left !important; white-space:normal !important;
+    }}
+    .gp-header__title {{ white-space:normal; }}
+  }}
 </style>
 <div class="gp-header">
-  <div style="{_HERO_CARD_STYLE.strip()}">
-    <h1 style="margin:0 0 8px;font-size:2rem;line-height:1.1;font-weight:850;">
-      Garden Path Mechanisms in Language Models
-    </h1>
-    {_PAPER_LINKS_HTML}
+  <div class="gp-header__card" style="{_COMPACT_CARD_STYLE.strip()}">
+    <div class="gp-header__row">
+      <h1 class="gp-header__title">Garden Path Mechanisms in Language Models</h1>
+      {_PAPER_LINKS_COMPACT_HTML}
+    </div>
   </div>
 </div>
 """

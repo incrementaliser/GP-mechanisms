@@ -1,0 +1,146 @@
+/* Garden-path notebook: compact section rail when sidebar is collapsed */
+
+.app-sidebar[data-expanded="false"] .gp-sidebar-inner > div > :not(.gp-sidebar-nav) {
+  display: none !important;
+}
+
+.app-sidebar[data-expanded="false"] .gp-sidebar-inner {
+  overflow: hidden;
+  max-width: 68px;
+}
+
+.app-sidebar[data-expanded="false"] .relative.h-full.flex.flex-col.px-3 {
+  overflow: hidden !important;
+}
+
+.app-sidebar[data-expanded="false"] .gp-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-top: 0.25rem;
+}
+
+/* Radio rows live in marimo-radio shadow DOM — use :host-context for collapsed rail */
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"],
+:host-context(.app-sidebar[data-expanded="false"]) .grid.gap-2 {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem !important;
+  width: 100%;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2 {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: 0 !important;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2 button[role="radio"],
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2 button[role="radio"] > span {
+  display: none !important;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2 label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: 0 !important;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:has(button[data-state="checked"]) label {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Introduction: home icon in collapsed rail */
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:first-child label {
+  font-size: 0;
+  line-height: 0;
+  max-width: 2.35rem;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:first-child label::before {
+  content: "";
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/* Modules 0–7: digit shortcuts in collapsed rail */
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:not(:first-child) label {
+  font-size: 0;
+  line-height: 0;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:not(:first-child) label::before {
+  display: block;
+  font-size: 0.88rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(2) label::before { content: "0"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(3) label::before { content: "1"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(4) label::before { content: "2"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(5) label::before { content: "3"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(6) label::before { content: "4"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(7) label::before { content: "5"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(8) label::before { content: "6"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(9) label::before { content: "7"; }
+
+/* Hide the radio group label ("Section") in collapsed rail */
+:host-context(.app-sidebar[data-expanded="false"]) .text-sm.font-semibold.leading-none,
+:host-context(.app-sidebar[data-expanded="false"]) label.text-sm.font-medium {
+  display: none !important;
+}
+
+/* Open sidebar: default marimo radio appearance */
+:host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2 label {
+  width: auto;
+  height: auto;
+  max-width: none;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  border-radius: 0;
+  overflow: visible;
+  white-space: normal;
+}
+
+:host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2 label::before {
+  content: none;
+  display: none;
+}
+
+:host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2 button[role="radio"],
+:host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2 button[role="radio"] > span {
+  display: revert !important;
+}
+
+:host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2:has(button[data-state="checked"]) label {
+  background: transparent;
+  color: inherit;
+}

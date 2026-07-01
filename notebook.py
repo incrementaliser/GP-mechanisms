@@ -3,7 +3,7 @@
 import marimo
 
 __generated_with = "0.23.9"
-app = marimo.App(width="full")
+app = marimo.App(width="full", css_file="assets/sidebar.css")
 
 
 @app.cell
@@ -15,20 +15,12 @@ def _():
 
 @app.cell
 def _(mo):
+    from gp_notebook.sidebar_nav import MODULE_NAV_DEFAULT_KEY, module_nav_full_options
+
     live_switch = mo.ui.switch(label="Live mode (GPU model + SAEs)", value=False)
     module_nav = mo.ui.radio(
-        options={
-            "Introduction": "intro",
-            "0 — Primer": "m0",
-            "1 — Feel the garden path": "m1",
-            "2 — Behavioral lab (Fig 2)": "m2",
-            "3 — Feature microscope (Fig 3)": "m3",
-            "4 — Intervention sandbox (Fig 4)": "m4",
-            "5 — Multiple readings? (RQ2)": "m5",
-            "6 — Repair vs reanalysis (RQ3)": "m6",
-            "7 — Your garden-path sentence": "m7",
-        },
-        value="Introduction",
+        options=module_nav_full_options(),
+        value=MODULE_NAV_DEFAULT_KEY,
         label="Section",
     )
     return live_switch, module_nav
@@ -99,8 +91,9 @@ def _(mo, show_intro):
 def _(live_switch, module_nav, mo):
     from gp_notebook.cache_status import cache_status_markdown, missing_required_caches
     from gp_notebook.device import device_status_message, live_mode_available as _live_mode_available
-    from gp_notebook.interventions import saes_available as _sidebar_saes_available
+    from gp_notebook.paths import saes_available as _sidebar_saes_available
     from gp_notebook.runtime import runtime_status_line as _sidebar_runtime_status
+    from gp_notebook.sidebar_nav import wrap_with_class
 
     device_line = device_status_message()
     cache_line = cache_status_markdown()
@@ -120,15 +113,19 @@ def _(live_switch, module_nav, mo):
         kind=banner_kind if _live_mode_available() or not missing else "warn",
     )
     sidebar = mo.sidebar(
-        mo.vstack(
-            [
-                mo.md("### Navigation"),
-                module_nav,
-                mo.md("### Execution"),
-                live_switch,
-                banner,
-            ]
-        )
+        wrap_with_class(
+            mo.vstack(
+                [
+                    mo.md("### Navigation"),
+                    wrap_with_class(module_nav, "gp-sidebar-nav"),
+                    mo.md("### Execution"),
+                    live_switch,
+                    banner,
+                ]
+            ),
+            "gp-sidebar-inner",
+        ),
+        width="280px",
     )
     sidebar
     return

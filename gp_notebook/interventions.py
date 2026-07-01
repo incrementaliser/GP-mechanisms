@@ -15,7 +15,7 @@ from transformers import AutoTokenizer
 
 from gp_notebook.behavior import MODEL_NAME, continuation_tokens_for_condition
 from gp_notebook.device import get_torch_device, live_mode_available
-from gp_notebook.paths import FEATURE_RESULTS, PROJECT_ROOT
+from gp_notebook.paths import FEATURE_RESULTS, PROJECT_ROOT, saes_available
 
 FeatureEdit = Tuple[int, int, float]
 FeatureMap = Dict[str, List[FeatureEdit]]
@@ -79,15 +79,6 @@ def load_autoencoder(model_name: str, submodule_name: str):
     ae.load_state_dict(torch.load(ae_path, map_location=device, weights_only=True))
     ae.eval()
     return ae
-
-
-def saes_available() -> bool:
-    """Return True when at least one Pythia SAE checkpoint is present locally."""
-    probe = (
-        PROJECT_ROOT
-        / "feature-circuits-gp/dictionaries/pythia-70m-deduped/resid_out_layer0/10_32768/ae.pt"
-    )
-    return probe.exists()
 
 
 def load_dictionaries(model_name: str, model: LanguageModel) -> dict:

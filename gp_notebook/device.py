@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
 
-import torch
+if TYPE_CHECKING:
+    import torch
 
 DeviceKind = Literal["cuda", "mps", "cpu"]
 
@@ -18,8 +19,16 @@ class DeviceInfo(TypedDict):
     device_name: str | None
 
 
+def _import_torch():
+    """Import PyTorch lazily to avoid marimo startup formatter conflicts."""
+    import torch
+
+    return torch
+
+
 def detect_device_kind() -> DeviceKind:
     """Pick the best available PyTorch backend: CUDA, then MPS, else CPU."""
+    torch = _import_torch()
     if torch.cuda.is_available():
         return "cuda"
     mps_backend = getattr(torch.backends, "mps", None)
@@ -30,11 +39,13 @@ def detect_device_kind() -> DeviceKind:
 
 def get_torch_device() -> torch.device:
     """Return the auto-detected PyTorch device for model and tensor placement."""
+    torch = _import_torch()
     return torch.device(detect_device_kind())
 
 
 def _device_name(kind: DeviceKind) -> str | None:
     """Return a human-readable accelerator name when one is available."""
+    torch = _import_torch()
     if kind == "cuda":
         return torch.cuda.get_device_name(torch.cuda.current_device())
     if kind == "mps":
@@ -44,6 +55,7 @@ def _device_name(kind: DeviceKind) -> str | None:
 
 def detect_device_info() -> DeviceInfo:
     """Auto-detect compute device using standard PyTorch availability checks."""
+    torch = _import_torch()
     kind = detect_device_kind()
     live = kind != "cpu"
     return DeviceInfo(

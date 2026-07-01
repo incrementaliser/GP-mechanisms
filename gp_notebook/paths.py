@@ -15,6 +15,15 @@ FEATURE_RESULTS: Path = PROJECT_ROOT / "results" / "pythia-70m-deduped"
 DICTIONARIES_DIR: Path = PROJECT_ROOT / "feature-circuits-gp" / "dictionaries"
 
 
+def saes_available() -> bool:
+    """Return True when at least one Pythia SAE checkpoint is present locally."""
+    probe = (
+        DICTIONARIES_DIR
+        / "pythia-70m-deduped/resid_out_layer0/10_32768/ae.pt"
+    )
+    return probe.exists()
+
+
 def ensure_assets_dir() -> Path:
     """Create the assets directory if it does not already exist."""
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)

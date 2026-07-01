@@ -81,7 +81,9 @@ def layer_narrative(condition: str) -> list[tuple[int, str]]:
     narrative: list[tuple[int, str]] = []
     for layer in layers:
         subset = counts[counts["layer"] == layer].sort_values("count", ascending=False)
-        top = ", ".join(f"{row.Category} ({row.count})" for _, row in subset.head(4).iterrows())
+        top = ", ".join(
+            f"{row['Category']} ({int(row['count'])})" for _, row in subset.head(4).iterrows()
+        )
         if layer <= 1:
             text = (
                 f"Layer {layer}: mostly lexical detectors — {top}. "

@@ -1,0 +1,23 @@
+{
+  "files": {
+    "behavioral_summary.parquet": true,
+    "behavioral_scored.parquet": true,
+    "interventions.parquet": true,
+    "intervention_sweeps.parquet": true,
+    "prefix_probs_npz.parquet": true,
+    "prefix_probs_nps.parquet": true,
+    "token_activations_npz.parquet": true,
+    "token_activations_nps.parquet": true,
+    "attributions_npz.json": true,
+    "attributions_nps.json": true,
+    "attention_npz.json": true,
+    "attention_nps.json": true,
+    "top_next_tokens.parquet": true,
+    "atp_ig_features.json": true,
+    "probe_figure5.json": true,
+    "gprc_summary.json": true,
+    "metadata.json": true
+  },
+  "missing_required": [],
+  "ready_fraction": 1.0
+}

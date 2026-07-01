@@ -1,0 +1,21 @@
+{
+  "table3": {
+    "Pythia-70m": {
+      "BoolQ": 42.8,
+      "MCQA": 50.0,
+      "GPRC NPS": 50.0,
+      "GPRC NPZ": 50.0
+    },
+    "Gemma-2-2b": {
+      "BoolQ": 70.7,
+      "MCQA": 90.0,
+      "GPRC NPS": 83.3,
+      "GPRC NPZ": 70.9
+    }
+  },
+  "circuit_iou": {
+    "NPZ": 0.002,
+    "NPS": 0.0
+  },
+  "sample_count": 72
+}

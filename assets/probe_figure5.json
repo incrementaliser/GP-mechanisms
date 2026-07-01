@@ -1,0 +1,78 @@
+{
+  "NPZ": [
+    {
+      "layer": 0,
+      "LEFT-ARC": 0.35,
+      "GEN": 0.25,
+      "RIGHT-ARC": 0.05
+    },
+    {
+      "layer": 1,
+      "LEFT-ARC": 0.55,
+      "GEN": 0.3,
+      "RIGHT-ARC": 0.04
+    },
+    {
+      "layer": 2,
+      "LEFT-ARC": 0.62,
+      "GEN": 0.28,
+      "RIGHT-ARC": 0.03
+    },
+    {
+      "layer": 3,
+      "LEFT-ARC": 0.58,
+      "GEN": 0.32,
+      "RIGHT-ARC": 0.04
+    },
+    {
+      "layer": 4,
+      "LEFT-ARC": 0.52,
+      "GEN": 0.35,
+      "RIGHT-ARC": 0.05
+    },
+    {
+      "layer": 5,
+      "LEFT-ARC": 0.4,
+      "GEN": 0.38,
+      "RIGHT-ARC": 0.06
+    }
+  ],
+  "NPS": [
+    {
+      "layer": 0,
+      "LEFT-ARC": 0.2,
+      "GEN": 0.4,
+      "RIGHT-ARC": 0.05
+    },
+    {
+      "layer": 1,
+      "LEFT-ARC": 0.22,
+      "GEN": 0.48,
+      "RIGHT-ARC": 0.04
+    },
+    {
+      "layer": 2,
+      "LEFT-ARC": 0.25,
+      "GEN": 0.52,
+      "RIGHT-ARC": 0.03
+    },
+    {
+      "layer": 3,
+      "LEFT-ARC": 0.28,
+      "GEN": 0.5,
+      "RIGHT-ARC": 0.04
+    },
+    {
+      "layer": 4,
+      "LEFT-ARC": 0.3,
+      "GEN": 0.48,
+      "RIGHT-ARC": 0.05
+    },
+    {
+      "layer": 5,
+      "LEFT-ARC": 0.25,
+      "GEN": 0.42,
+      "RIGHT-ARC": 0.06
+    }
+  ]
+}

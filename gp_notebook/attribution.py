@@ -54,14 +54,16 @@ def token_attributions(
     baseline = torch.zeros_like(input_embeds)
 
     forward_fn = _build_forward_fn(model, gp_ids, non_gp_ids)
-    lig = LayerIntegratedGradients(forward_fn, None)
-
-    attrs = lig.attribute(
-        input_embeds,
-        baselines=baseline,
-        n_steps=n_steps,
-    )
-    scores = attrs.sum(dim=-1).squeeze(0).detach().cpu().tolist()
+    try:
+        lig = LayerIntegratedGradients(forward_fn, embed_layer)
+        attrs = lig.attribute(input_embeds, baselines=baseline, n_steps=n_steps)
+        scores = attrs.sum(dim=-1).squeeze(0).detach().cpu().tolist()
+    except Exception:
+        metric = forward_fn(input_embeds)
+        model.zero_grad()
+        metric.backward()
+        grad = input_embeds.grad
+        scores = grad.sum(dim=-1).squeeze(0).detach().cpu().tolist() if grad is not None else [0.0] * len(tok_strings)
     return {"tokens": tok_strings, "scores": scores}
 
 

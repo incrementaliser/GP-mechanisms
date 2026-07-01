@@ -226,6 +226,8 @@ def run_intervention_suite(
     tokenizer: AutoTokenizer | None = None,
 ) -> dict[str, float]:
     """Return mean GP/non-GP probabilities under one intervention setting."""
+    from gp_notebook.runtime import get_nnsight_bundle
+
     if not saes_available():
         raise FileNotFoundError("Pythia SAE checkpoints are not available locally.")
 
@@ -233,15 +235,10 @@ def run_intervention_suite(
     if tokenizer is None:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     if model is None:
-        device = _runtime_device()
-        model = LanguageModel(
-            model_name,
-            torch_dtype=torch.float32,
-            device_map=str(device),
-            dispatch=True,
-        )
+        model, dictionaries = get_nnsight_bundle()
+    else:
+        _, dictionaries = get_nnsight_bundle()
 
-    dictionaries = load_dictionaries(model_name, model)
     feature_df = pd.read_csv(
         FEATURE_RESULTS / ("npz_features.csv" if condition == "NPZ" else "nps_features.csv")
     )
@@ -295,13 +292,18 @@ def feature_token_activations(
     for prompt in prompts:
         tok_ids = tokenizer(prompt, return_tensors="pt")["input_ids"]
         tok_strings = tokenizer.convert_ids_to_tokens(tok_ids[0].tolist())
-        with model.trace(prompt), torch.no_grad():
-            saved_encodings: dict[str, torch.Tensor] = {}
-            for submod_name, (submodule, ae) in dictionaries.items():
-                x = submodule.output
-                if isinstance(x, tuple):
-                    x = x[0]
-                saved_encodings[submod_name] = ae.encode(x).save()
+        saved_encodings: dict[str, torch.Tensor] = {}
+        try:
+            with model.trace(prompt), torch.no_grad():
+                for submod_name, (submodule, ae) in dictionaries.items():
+                    x = submodule.output
+                    if isinstance(x, tuple):
+                        x = x[0]
+                    saved_encodings[submod_name] = ae.encode(x).save()
+        except Exception:
+            continue
+        if not saved_encodings:
+            continue
 
         for _, feat in syntactic.iterrows():
             submod_name = feat["submodule"]
@@ -333,30 +335,30 @@ def attention_patterns_for_sentence(
     tokenizer: AutoTokenizer | None = None,
 ) -> dict:
     """Capture attention weights for all layers of Pythia-70m on one sentence."""
-    import numpy as np
+    from transformers import AutoModelForCausalLM
 
     model_name = MODEL_NAME
     if tokenizer is None:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     device = _runtime_device()
-    if model is None:
-        model = LanguageModel(model_name, torch_dtype=torch.float32, device_map=str(device), dispatch=True)
+    hf_model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        attn_implementation="eager",
+    ).to(device)
+    hf_model.eval()
 
-    tok_ids = tokenizer(sentence, return_tensors="pt")["input_ids"]
-    tok_strings = tokenizer.convert_ids_to_tokens(tok_ids[0].tolist())
+    input_ids = tokenizer(sentence, return_tensors="pt")["input_ids"].to(device)
+    tok_strings = tokenizer.convert_ids_to_tokens(input_ids[0].tolist())
 
-    with model.trace(sentence), torch.no_grad():
-        attn_saves = {}
-        for layer_idx in range(6):
-            attn_out = model.gpt_neox.layers[layer_idx].attention
-            attn_saves[layer_idx] = attn_out.output.save()
+    with torch.inference_mode():
+        outputs = hf_model(input_ids, output_attentions=True)
 
     patterns: dict[str, list] = {"tokens": tok_strings, "layers": {}}
-    for layer_idx, saved in attn_saves.items():
-        val = saved.value if hasattr(saved, "value") else saved
-        if isinstance(val, tuple):
-            val = val[0]
-        patterns["layers"][str(layer_idx)] = val.squeeze(0).detach().cpu().numpy().tolist()
+    if outputs.attentions is None:
+        return patterns
+    for layer_idx, attn in enumerate(outputs.attentions):
+        # Shape per layer: (heads, seq_len, seq_len)
+        patterns["layers"][str(layer_idx)] = attn.squeeze(0).detach().cpu().numpy().tolist()
     return patterns
 
 

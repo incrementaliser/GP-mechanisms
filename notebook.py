@@ -15,6 +15,35 @@ def _():
 
 @app.cell
 def _(mo):
+    live_switch = mo.ui.switch(label="Live mode (GPU model + SAEs)", value=False)
+    module_nav = mo.ui.radio(
+        options={
+            "Introduction": "intro",
+            "0 — Mech-interp primer": "m0",
+            "1 — Feel the garden path": "m1",
+            "2 — SAE primer": "m2",
+            "3 — Behavioral lab (Fig 2)": "m3",
+            "4 — Feature microscope (Fig 3)": "m4",
+            "5 — Intervention sandbox (Fig 4)": "m5",
+            "6 — Multiple readings? (RQ2)": "m6",
+            "7 — Repair vs reanalysis (RQ3)": "m7",
+            "8 — Your garden-path sentence": "m8",
+        },
+        value="Introduction",
+        label="Section",
+    )
+    return live_switch, module_nav
+
+
+@app.cell
+def _(module_nav, mo):
+    show_intro = module_nav.value == "intro"
+    return (show_intro,)
+
+
+@app.cell
+def _(mo, show_intro):
+    mo.stop(not show_intro)
     from gp_notebook.viz import notebook_hero_html as _hero_html
 
     hero = mo.Html(_hero_html())
@@ -59,28 +88,21 @@ readings coexist, and whether the model revises its parse when disambiguated.
 
 
 @app.cell
-def _(mo):
+def _(mo, show_intro):
+    mo.stop(show_intro)
+    from gp_notebook.viz import notebook_header_compact_html
+
+    mo.Html(notebook_header_compact_html())
+    return
+
+
+@app.cell
+def _(live_switch, module_nav, mo):
     from gp_notebook.cache_status import cache_status_markdown, missing_required_caches
     from gp_notebook.device import device_status_message, live_mode_available as _live_mode_available
     from gp_notebook.interventions import saes_available as _sidebar_saes_available
     from gp_notebook.runtime import runtime_status_line as _sidebar_runtime_status
 
-    live_switch = mo.ui.switch(label="Live mode (GPU model + SAEs)", value=False)
-    module_nav = mo.ui.radio(
-        options={
-            "0 — Mech-interp primer": "m0",
-            "1 — Feel the garden path": "m1",
-            "2 — SAE primer": "m2",
-            "3 — Behavioral lab (Fig 2)": "m3",
-            "4 — Feature microscope (Fig 3)": "m4",
-            "5 — Intervention sandbox (Fig 4)": "m5",
-            "6 — Multiple readings? (RQ2)": "m6",
-            "7 — Repair vs reanalysis (RQ3)": "m7",
-            "8 — Your garden-path sentence": "m8",
-        },
-        value="1 — Feel the garden path",
-        label="Section",
-    )
     device_line = device_status_message()
     cache_line = cache_status_markdown()
     runtime_line = _sidebar_runtime_status()
@@ -110,11 +132,12 @@ def _(mo):
         )
     )
     sidebar
-    return live_switch, module_nav
+    return
 
 
 @app.cell
-def _():
+def _(mo, show_intro):
+    mo.stop(show_intro)
     import numpy as np
     import pandas as pd
     import plotly.express as px

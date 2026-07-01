@@ -11,18 +11,50 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def notebook_hero_html() -> str:
-    """Return the opening hero banner with paper metadata and garden-path fork SVG."""
-    return """
+_PAPER_LINKS_HTML = """
+<div style="margin-top:14px;font-size:0.88rem;color:#475569;">
+  <a href="https://www.alphaxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
+     text-decoration:none;">alphaXiv</a>
+  · <a href="https://arxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
+     text-decoration:none;">arXiv:2412.05353</a>
+  · Hanna &amp; Mueller, NAACL 2025
+</div>
+"""
+
+_HERO_CARD_STYLE = """
+  padding:28px 24px; border-radius:12px;
+  background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fef3c7 100%);
+  border:1px solid rgba(148,163,184,0.35);
+"""
+
+
+def notebook_header_compact_html() -> str:
+    """Return a slim global header with title, paper links, and author names only."""
+    return f"""
 <style>
-  .gp-hero { color:#1f2937; margin:0 0 20px; font-family:system-ui,sans-serif; }
-  .gp-hero__grid {
+  .gp-header {{ color:#1f2937; margin:0 0 20px; font-family:system-ui,sans-serif; }}
+</style>
+<div class="gp-header">
+  <div style="{_HERO_CARD_STYLE.strip()}">
+    <h1 style="margin:0 0 8px;font-size:2rem;line-height:1.1;font-weight:850;">
+      Garden Path Mechanisms in Language Models
+    </h1>
+    {_PAPER_LINKS_HTML}
+  </div>
+</div>
+"""
+
+
+def notebook_hero_html() -> str:
+    """Return the full intro hero with badge, subtitle, and garden-path fork SVG."""
+    return f"""
+<style>
+  .gp-hero {{ color:#1f2937; margin:0 0 20px; font-family:system-ui,sans-serif; }}
+  .gp-hero__grid {{
     display:grid; gap:20px; grid-template-columns:minmax(0,1.3fr) minmax(240px,0.7fr);
-    padding:28px 24px; border-radius:12px;
-    background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fef3c7 100%);
-    border:1px solid rgba(148,163,184,0.35);
-  }
-  @media (max-width:760px) { .gp-hero__grid { grid-template-columns:1fr; } }
+    {_HERO_CARD_STYLE.strip()}
+  }}
+  @media (max-width:760px) {{ .gp-hero__grid {{ grid-template-columns:1fr; }} }}
 </style>
 <div class="gp-hero">
   <div class="gp-hero__grid">
@@ -40,19 +72,13 @@ def notebook_hero_html() -> str:
         then <strong>causally flip</strong> which reading the model prefers using
         sparse autoencoder features.
       </p>
-      <div style="margin-top:14px;font-size:0.88rem;color:#475569;">
-        <a href="https://www.alphaxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
-           text-decoration:none;">alphaXiv</a>
-        · <a href="https://arxiv.org/abs/2412.05353" style="color:#2563eb;font-weight:700;
-           text-decoration:none;">arXiv:2412.05353</a>
-        · Hanna &amp; Mueller, NAACL 2025
-      </div>
+      {_PAPER_LINKS_HTML}
     </div>
     <div style="background:rgba(255,255,255,0.75);border-radius:10px;padding:14px;
                 border:1px solid rgba(148,163,184,0.3);">
       <svg viewBox="0 0 280 140" width="100%" role="img"
            aria-label="Two syntactic readings diverge at an ambiguous noun">
-        <text x="8" y="18" font-size="11" fill="#64748b">Ambiguous noun</text>
+        <text x="140" y="14" text-anchor="middle" font-size="11" fill="#64748b">Ambiguous noun</text>
         <line x1="140" y1="30" x2="140" y2="55" stroke="#94a3b8" stroke-width="2"/>
         <circle cx="140" cy="28" r="8" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
         <path d="M140 55 L60 120" stroke="#c0392b" stroke-width="2.5" fill="none"/>

@@ -69,13 +69,22 @@ def timed_call(operation: str, fn: Any, *args: Any, **kwargs: Any) -> Any:
     return result
 
 
+def last_timed_call() -> tuple[str, float] | None:
+    """Return the operation name and seconds of the last timed call, if any."""
+    if _STATE.last_runtime_s is not None and _STATE.last_operation:
+        return _STATE.last_operation, _STATE.last_runtime_s
+    return None
+
+
 def runtime_status_line() -> str:
     """Human-readable line for sidebar device/timing card."""
     device = get_torch_device()
     sae = "SAEs ready" if saes_available() else "SAEs missing"
     parts = [f"Device: `{device}`", sae]
-    if _STATE.last_runtime_s is not None and _STATE.last_operation:
-        parts.append(f"Last {_STATE.last_operation}: {_STATE.last_runtime_s:.2f}s")
+    last_call = last_timed_call()
+    if last_call is not None:
+        operation, elapsed_s = last_call
+        parts.append(f"Last {operation}: {elapsed_s:.2f}s")
     return " · ".join(parts)
 
 

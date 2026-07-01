@@ -1,6 +1,7 @@
 /* Garden-path notebook: compact section rail when sidebar is collapsed */
 
-.app-sidebar[data-expanded="false"] .gp-sidebar-inner > div > :not(.gp-sidebar-nav) {
+.app-sidebar[data-expanded="false"] .gp-sidebar-main > div > :not(.gp-sidebar-nav),
+.app-sidebar[data-expanded="false"] .gp-status-box-wrapper {
   display: none !important;
 }
 
@@ -140,7 +141,137 @@
   display: revert !important;
 }
 
+/* Center the selected indicator dot within the radio button circle.
+   Radix UI positions the indicator with top/left 50% + translate(-50%,-50%),
+   which requires the button to be position:relative as the containing block. */
+button[role="radio"] {
+  position: relative !important;
+}
+
+button[role="radio"] > span {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
 :host-context(.app-sidebar[data-expanded="true"]) [role="radiogroup"] > .flex.items-center.space-x-2:has(button[data-state="checked"]) label {
   background: transparent;
   color: inherit;
+}
+
+/* Sidebar layout: pin status box to bottom */
+.app-sidebar[data-expanded="true"] .relative.h-full.flex.flex-col.px-3 {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.app-sidebar[data-expanded="true"] .gp-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100%;
+}
+
+.app-sidebar[data-expanded="true"] .gp-sidebar-inner > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100%;
+}
+
+.gp-sidebar-main {
+  flex: 1 1 auto;
+}
+
+.gp-status-box-wrapper {
+  flex: 0 0 auto;
+  margin-top: auto;
+  width: 86%;
+  margin-left: 15px;
+  margin-right: 0.35rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.gp-status-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 0.5rem 0.55rem 0.5rem 15px;
+  height: 90px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.gp-status-row {
+  display: flex;
+  align-items: center;
+  padding-left: 0.15rem;
+}
+
+.gp-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  position: relative;
+  cursor: default;
+}
+
+.gp-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gp-dot-green {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.gp-dot-red {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.gp-status-label {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.gp-status-timing {
+  margin-top: 0.15rem;
+  padding-top: 0.35rem;
+  padding-left: 0.15rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+/* CSS-only tooltip (data-tooltip avoids native browser title popup) */
+.gp-status-indicator[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.35rem);
+  max-width: 16rem;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
 }

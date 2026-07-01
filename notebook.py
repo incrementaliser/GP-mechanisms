@@ -92,35 +92,45 @@ def _(live_switch, module_nav, mo):
     from gp_notebook.cache_status import cache_status_markdown, missing_required_caches
     from gp_notebook.device import device_status_message, live_mode_available as _live_mode_available
     from gp_notebook.paths import saes_available as _sidebar_saes_available
-    from gp_notebook.runtime import runtime_status_line as _sidebar_runtime_status
-    from gp_notebook.sidebar_nav import wrap_with_class
+    from gp_notebook.runtime import last_timed_call
+    from gp_notebook.sidebar_nav import system_status_html, wrap_with_class
 
-    device_line = device_status_message()
-    cache_line = cache_status_markdown()
-    runtime_line = _sidebar_runtime_status()
-    sae_line = "SAE checkpoints: available" if _sidebar_saes_available() else "SAE checkpoints: missing"
-    missing = missing_required_caches()
-    banner_kind = "info" if not missing else "warn"
-    banner = mo.callout(
-        mo.vstack(
-            [
-                mo.md(device_line),
-                mo.md(cache_line),
-                mo.md(sae_line),
-                mo.md(runtime_line),
-            ]
-        ),
-        kind=banner_kind if _live_mode_available() or not missing else "warn",
+    gpu_ok = _live_mode_available()
+    data_ok = not missing_required_caches()
+    saes_ok = _sidebar_saes_available()
+    data_tooltip = cache_status_markdown().replace("**", "").replace("`", "")
+    sae_tooltip = (
+        "SAE checkpoints found"
+        if saes_ok
+        else "SAE checkpoints missing — interventions need live mode"
+    )
+    status_widget = mo.Html(
+        system_status_html(
+            gpu_ok=gpu_ok,
+            gpu_tooltip=device_status_message(),
+            data_ok=data_ok,
+            data_tooltip=data_tooltip,
+            saes_ok=saes_ok,
+            saes_tooltip=sae_tooltip,
+            last_call=last_timed_call(),
+        )
     )
     sidebar = mo.sidebar(
         wrap_with_class(
             mo.vstack(
                 [
-                    mo.md("### Navigation"),
-                    wrap_with_class(module_nav, "gp-sidebar-nav"),
-                    mo.md("### Execution"),
-                    live_switch,
-                    banner,
+                    wrap_with_class(
+                        mo.vstack(
+                            [
+                                mo.md("### Navigation"),
+                                wrap_with_class(module_nav, "gp-sidebar-nav"),
+                                mo.md("### Execution"),
+                                live_switch,
+                            ]
+                        ),
+                        "gp-sidebar-main",
+                    ),
+                    wrap_with_class(status_widget, "gp-status-box-wrapper"),
                 ]
             ),
             "gp-sidebar-inner",

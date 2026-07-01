@@ -19,15 +19,14 @@ def _(mo):
     module_nav = mo.ui.radio(
         options={
             "Introduction": "intro",
-            "0 — Mech-interp primer": "m0",
+            "0 — Primer": "m0",
             "1 — Feel the garden path": "m1",
-            "2 — SAE primer": "m2",
-            "3 — Behavioral lab (Fig 2)": "m3",
-            "4 — Feature microscope (Fig 3)": "m4",
-            "5 — Intervention sandbox (Fig 4)": "m5",
-            "6 — Multiple readings? (RQ2)": "m6",
-            "7 — Repair vs reanalysis (RQ3)": "m7",
-            "8 — Your garden-path sentence": "m8",
+            "2 — Behavioral lab (Fig 2)": "m2",
+            "3 — Feature microscope (Fig 3)": "m3",
+            "4 — Intervention sandbox (Fig 4)": "m4",
+            "5 — Multiple readings? (RQ2)": "m5",
+            "6 — Repair vs reanalysis (RQ3)": "m6",
+            "7 — Your garden-path sentence": "m7",
         },
         value="Introduction",
         label="Section",
@@ -78,9 +77,9 @@ readings coexist, and whether the model revises its parse when disambiguated.
         "sidebar for GPU-backed interventions and custom sentences._"
     )
     recommended = mo.callout(
-        "**Recommended path:** M1 Feel the garden path → M3 Behavioral lab → "
-        "M4 Feature microscope → **M5 Flip the reading** → M6 Multiple readings → "
-        "M7 Repair vs reanalysis → M8 Your sentence",
+        "**Recommended path:** M1 Feel the garden path → M2 Behavioral lab → "
+        "M3 Feature microscope → **M4 Flip the reading** → M5 Multiple readings → "
+        "M6 Repair vs reanalysis → M7 Your sentence",
         kind="success",
     )
     mo.vstack([hero, tldr, lay_summary, reader_note, recommended])
@@ -260,7 +259,7 @@ def _(mo, show_intro):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# CHAPTER 0 — Mechanistic Interpretability Primer
+# CHAPTER 0 — Primer
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
@@ -270,11 +269,13 @@ def _(module_nav, mo):
 
 
 @app.cell
-def _(attention_view, load_json_cache, mo, show_m0):
+def _(load_json_cache, mo, show_m0):
     mo.stop(not show_m0)
     m0_intro = mo.md(
         r"""
-## 0. What is mechanistic interpretability?
+## 0. Primer
+
+### What is mechanistic interpretability?
 
 **Mechanistic interpretability** aims to reverse-engineer what neural networks
 *actually compute*, not just what they get right.
@@ -316,44 +317,103 @@ We apply these tools to **garden-path sentences** — inputs with two competing 
         if attn_cache is not None
         else None
     )
-    roadmap = mo.md(
-        """
-### Notebook roadmap
-
-| Ch. | Title | Paper | RQ |
-|-----|-------|-------|-----|
-| 1 | Feel the garden path | §4.1 setup | — |
-| 3 | Behavioral lab | Figure 2 | RQ1 |
-| 4 | Feature microscope | Figures 1–3, Table 2 | RQ1 |
-| 5 | Intervention sandbox | Figure 4 | RQ1 |
-| 6 | Multiple readings | Figure 5 | RQ2 |
-| 7 | Repair vs reanalysis | Table 3, §6 | RQ3 |
-| 8 | Your sentence | Extension | — |
-"""
-    )
     _content = [m0_intro, mo.md("### Key concepts"), glossary]
-    if layer_select is not None:
-        _content.append(mo.md("### Attention patterns"))
-        _content.append(layer_select)
-    _content.append(roadmap)
     mo.vstack(_content)
     return (attn_cache, layer_select)
 
 
 @app.cell
+def _(mo, show_m0):
+    mo.stop(not show_m0)
+    sparsity = mo.ui.slider(0.0, 1.0, value=0.9, step=0.05, label="Sparsity threshold")
+    return (sparsity,)
+
+
+@app.cell
+def _(load_parquet_cache, mo, np, show_m0, sparsity, spike_bar_html):
+    mo.stop(not show_m0)
+    rng = np.random.default_rng(0)
+    raw = rng.normal(0, 1, 32)
+    sparse_features = np.maximum(raw - sparsity.value, 0)
+    active = int((sparse_features > 0).sum())
+    sae_svg = """
+    <svg width="640" height="120" xmlns="http://www.w3.org/2000/svg">
+      <text x="10" y="30" font-size="14">x (activation)</text>
+      <text x="280" y="30" font-size="14">f = ReLU(W_e(x - b_d) + b_e)</text>
+      <text x="520" y="30" font-size="14">x̂ = W_d f + b_d</text>
+      <rect x="60" y="50" width="80" height="40" fill="#d5dbdb" />
+      <polygon points="160,70 220,70 240,50 240,90 220,70" fill="#566573"/>
+      <rect x="260" y="50" width="80" height="40" fill="#f9e79f" />
+      <polygon points="360,70 420,70 440,50 440,90 420,70" fill="#566573"/>
+      <rect x="460" y="50" width="80" height="40" fill="#d5dbdb" />
+    </svg>
+    """
+    _content = [
+        mo.md("### SAE primer"),
+        mo.Html(sae_svg),
+        sparsity,
+        mo.md(f"Toy demo: **{active}** of 32 features active at threshold {sparsity.value:.2f}."),
+    ]
+    _tok_act = load_parquet_cache("token_activations_npz.parquet")
+    if _tok_act is not None and not _tok_act.empty and "sentence" in _tok_act.columns:
+        _first_sentence = _tok_act["sentence"].iloc[0]
+        _sent = _tok_act[
+            (_tok_act["sentence"] == _first_sentence)
+            & (_tok_act["reading_side"].isin({"pro_gp", "anti_gp"}))
+        ]
+        for feat_name in _sent["feature"].unique()[:2]:
+            feat_rows = _sent[_sent["feature"] == feat_name].sort_values("position")
+            _content.append(
+                mo.Html(
+                    spike_bar_html(
+                        feat_rows["token"].tolist(),
+                        feat_rows["activation"].tolist(),
+                        label=f"Real SAE spike: {feat_name}",
+                    )
+                )
+            )
+    mo.vstack(_content)
+    return
+
+
+@app.cell
 def _(attn_cache, attention_view, layer_select, mo, np, show_m0):
     mo.stop(not show_m0)
+    _content = [mo.md("### Attention patterns")]
     _attn_panel = mo.md("_Attention cache not loaded. Run `uv run python precompute.py`._")
     if attn_cache is not None and layer_select is not None:
         layer_idx = layer_select.value
         attn_data = np.array(attn_cache["layers"][layer_idx])
         _tokens = attn_cache["tokens"]
         attn_html = attention_view(_tokens, attn_data)
+        _content.append(layer_select)
         _attn_panel = mo.vstack([
             mo.md(f"**Layer {layer_idx}** — {attn_data.shape[0]} heads"),
             mo.iframe(attn_html),
         ])
-    _attn_panel
+    _content.append(_attn_panel)
+    mo.vstack(_content)
+    return
+
+
+@app.cell
+def _(mo, show_m0):
+    mo.stop(not show_m0)
+    mo.md(
+        """
+### Notebook roadmap
+
+| Ch. | Title | Paper | RQ |
+|-----|-------|-------|-----|
+| 1 | Feel the garden path | §4.1 setup | — |
+| 2 | Behavioral lab | Figure 2 | RQ1 |
+| 3 | Feature microscope | Figures 1–3, Table 2 | RQ1 |
+| 4 | Intervention sandbox | Figure 4 | RQ1 |
+| 5 | Multiple readings | Figure 5 | RQ2 |
+| 6 | Repair vs reanalysis | Table 3, §6 | RQ3 |
+| 7 | Your sentence | Extension | — |
+"""
+    )
     return
 
 
@@ -467,7 +527,7 @@ def _(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 2 — SAE Primer
+# MODULE 2 — Behavioral Lab (Fig 2)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
@@ -477,71 +537,8 @@ def _(module_nav, mo):
 
 
 @app.cell
-def _(mo, show_m2):
+def _(behavioral_scored, behavioral_summary, mo, show_m2):
     mo.stop(not show_m2)
-    sparsity = mo.ui.slider(0.0, 1.0, value=0.9, step=0.05, label="Sparsity threshold")
-    return (sparsity,)
-
-
-@app.cell
-def _(colored_token_view, load_parquet_cache, mo, np, show_m2, sparsity, spike_bar_html):
-    mo.stop(not show_m2)
-    rng = np.random.default_rng(0)
-    raw = rng.normal(0, 1, 32)
-    sparse_features = np.maximum(raw - sparsity.value, 0)
-    active = int((sparse_features > 0).sum())
-    sae_svg = """
-    <svg width="640" height="120" xmlns="http://www.w3.org/2000/svg">
-      <text x="10" y="30" font-size="14">x (activation)</text>
-      <text x="280" y="30" font-size="14">f = ReLU(W_e(x - b_d) + b_e)</text>
-      <text x="520" y="30" font-size="14">x̂ = W_d f + b_d</text>
-      <rect x="60" y="50" width="80" height="40" fill="#d5dbdb" />
-      <polygon points="160,70 220,70 240,50 240,90 220,70" fill="#566573"/>
-      <rect x="260" y="50" width="80" height="40" fill="#f9e79f" />
-      <polygon points="360,70 420,70 440,50 440,90 420,70" fill="#566573"/>
-      <rect x="460" y="50" width="80" height="40" fill="#d5dbdb" />
-    </svg>
-    """
-    _content = [
-        mo.md("## 2. SAE primer"),
-        mo.Html(sae_svg),
-        mo.md(f"Toy demo: **{active}** of 32 features active at threshold {sparsity.value:.2f}."),
-    ]
-    _tok_act = load_parquet_cache("token_activations_npz.parquet")
-    if _tok_act is not None and not _tok_act.empty and "sentence" in _tok_act.columns:
-        _first_sentence = _tok_act["sentence"].iloc[0]
-        _sent = _tok_act[
-            (_tok_act["sentence"] == _first_sentence)
-            & (_tok_act["reading_side"].isin({"pro_gp", "anti_gp"}))
-        ]
-        for feat_name in _sent["feature"].unique()[:2]:
-            feat_rows = _sent[_sent["feature"] == feat_name].sort_values("position")
-            _content.append(
-                mo.Html(
-                    spike_bar_html(
-                        feat_rows["token"].tolist(),
-                        feat_rows["activation"].tolist(),
-                        label=f"Real SAE spike: {feat_name}",
-                    )
-                )
-            )
-    mo.vstack(_content)
-    return
-
-
-# ═══════════════════════════════════════════════════════════════════
-# MODULE 3 — Behavioral Lab (Fig 2)
-# ═══════════════════════════════════════════════════════════════════
-
-@app.cell
-def _(module_nav, mo):
-    show_m3 = module_nav.value == "m3"
-    return (show_m3,)
-
-
-@app.cell
-def _(behavioral_scored, behavioral_summary, mo, show_m3):
-    mo.stop(not show_m3)
     drill_df = None
     drill_table = None
     if behavioral_summary is not None and behavioral_scored is not None:
@@ -563,12 +560,12 @@ def _(
     load_json_cache,
     mo,
     px,
-    show_m3,
+    show_m2,
     top_next_cache,
 ):
-    mo.stop(not show_m3)
+    mo.stop(not show_m2)
     _content: list = [
-        mo.md("## 3. Behavioral lab — does Pythia get garden-pathed?"),
+        mo.md("## 2. Behavioral lab — does Pythia get garden-pathed?"),
         mo.md("Reproduction of **Figure 2**. MV/RR is shown but excluded from later analyses (paper §4.1)."),
     ]
     if behavioral_summary is None:
@@ -619,18 +616,18 @@ def _(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 4 — Feature Microscope (Fig 3)
+# MODULE 3 — Feature Microscope (Fig 3)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
 def _(module_nav, mo):
-    show_m4 = module_nav.value == "m4"
-    return (show_m4,)
+    show_m3 = module_nav.value == "m3"
+    return (show_m3,)
 
 
 @app.cell
-def _(mo, show_m4):
-    mo.stop(not show_m4)
+def _(mo, show_m3):
+    mo.stop(not show_m3)
     circuit_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
         value="NP/Z",
@@ -660,9 +657,9 @@ def _(
     layer_slider,
     mo,
     rank_features_by_ie,
-    show_m4,
+    show_m3,
 ):
-    mo.stop(not show_m4)
+    mo.stop(not show_m3)
     feat_catalog = enrich_feature_table(circuit_condition.value)
     ranked = rank_features_by_ie(circuit_condition.value, threshold=ie_threshold.value)
     ranked = ranked[ranked["layer"] <= layer_slider.value]
@@ -696,10 +693,10 @@ def _(
     mo,
     px,
     ranked,
-    show_m4,
+    show_m3,
     spike_bar_html,
 ):
-    mo.stop(not show_m4)
+    mo.stop(not show_m3)
     counts = category_counts(circuit_condition.value)
     if category_filter.value == "syntactic":
         filtered_feats = feat_catalog[feat_catalog["is_syntactic"]]
@@ -752,7 +749,7 @@ def _(
                 )
 
     _content = [
-        mo.md("## 4. Feature microscope — SAE circuits (Figure 3)"),
+        mo.md("## 3. Feature microscope — SAE circuits (Figure 3)"),
         mo.md(
             "Browse annotated features like [Neuronpedia](https://www.neuronpedia.org/pythia-70m-deduped). "
             "Red = pro-GP; blue = anti-GP."
@@ -769,18 +766,18 @@ def _(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 5 — Intervention Sandbox (Fig 4) — CENTERPIECE
+# MODULE 4 — Intervention Sandbox (Fig 4) — CENTERPIECE
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
 def _(module_nav, mo):
-    show_m5 = module_nav.value == "m5"
-    return (show_m5,)
+    show_m4 = module_nav.value == "m4"
+    return (show_m4,)
 
 
 @app.cell
-def _(interventions_df, live_switch, mo, show_m5):
-    mo.stop(not show_m5)
+def _(interventions_df, live_switch, mo, show_m4):
+    mo.stop(not show_m4)
     sandbox_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
         value="NP/Z",
@@ -834,12 +831,12 @@ def _(
     saes_available,
     sandbox_condition,
     sentence_pick,
-    show_m5,
+    show_m4,
     subject_slider,
     timed_call,
     tug_of_war_html,
 ):
-    mo.stop(not show_m5)
+    mo.stop(not show_m4)
 
     cond = sandbox_condition.value
     sub_amp = subject_slider.value
@@ -932,7 +929,7 @@ def _(
             )
 
     mo.vstack([
-        mo.md("## 5. Intervention sandbox — **flip the model's reading**"),
+        mo.md("## 4. Intervention sandbox — **flip the model's reading**"),
         mo.md(f"**Sentence:** _{example}_"),
         mo.hstack([sandbox_condition, sentence_pick, preset]),
         mo.hstack([subject_slider, object_slider, clause_slider, random_toggle]),
@@ -946,18 +943,18 @@ def _(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 6 — One or Many Readings? (RQ2)
+# MODULE 5 — One or Many Readings? (RQ2)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
 def _(module_nav, mo):
-    show_m6 = module_nav.value == "m6"
-    return (show_m6,)
+    show_m5 = module_nav.value == "m5"
+    return (show_m5,)
 
 
 @app.cell
-def _(mo, probe_cache, show_m6):
-    mo.stop(not show_m6)
+def _(mo, probe_cache, show_m5):
+    mo.stop(not show_m5)
     rq2_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
         value="NP/Z",
@@ -985,9 +982,9 @@ def _(
     probe_figure5_plot,
     representative_activation_matrix,
     rq2_condition,
-    show_m6,
+    show_m5,
 ):
-    mo.stop(not show_m6)
+    mo.stop(not show_m5)
     matrix = representative_activation_matrix(rq2_condition.value)
     activation_fig = activation_heatmap(matrix)
     probe_fig = probe_figure5_plot(probe_cache, rq2_condition.value)
@@ -999,7 +996,7 @@ def _(
     <text x="100" y="78" font-size="10">both active</text></svg>"""
 
     _content = [
-        mo.md("## 6. One or many readings? (RQ2)"),
+        mo.md("## 5. One or many readings? (RQ2)"),
         mo.md("Both pro-GP and anti-GP features activate — the model **hedges** between parses."),
         activation_fig,
         probe_fig,
@@ -1034,18 +1031,18 @@ def _(
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 7 — Repair vs Reanalysis (RQ3)
+# MODULE 6 — Repair vs Reanalysis (RQ3)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
 def _(module_nav, mo):
-    show_m7 = module_nav.value == "m7"
-    return (show_m7,)
+    show_m6 = module_nav.value == "m6"
+    return (show_m6,)
 
 
 @app.cell
-def _(CIRCUIT_IOU, gprc_table_df, mo, sample_gprc_items, show_m7):
-    mo.stop(not show_m7)
+def _(CIRCUIT_IOU, gprc_table_df, mo, sample_gprc_items, show_m6):
+    mo.stop(not show_m6)
     gprc_condition = mo.ui.dropdown(
         options={"NP/Z": "NPZ", "NP/S": "NPS"},
         value="NP/Z",
@@ -1055,8 +1052,8 @@ def _(CIRCUIT_IOU, gprc_table_df, mo, sample_gprc_items, show_m7):
 
 
 @app.cell
-def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m7):
-    mo.stop(not show_m7)
+def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m6):
+    mo.stop(not show_m6)
     qa_table = mo.ui.table(gprc_table_df())
     samples = sample_gprc_items(gprc_condition.value, n=3)
     iou = CIRCUIT_IOU.get(gprc_condition.value, 0.0)
@@ -1070,7 +1067,7 @@ def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m7
     </svg>
     """
     mo.vstack([
-        mo.md("## 7. Repair vs reanalysis? (RQ3)"),
+        mo.md("## 6. Repair vs reanalysis? (RQ3)"),
         mo.md("**Table 3** — only Gemma-2-2b answers follow-ups above chance."),
         qa_table,
         mo.Html(overlap_svg),
@@ -1090,18 +1087,18 @@ def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m7
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 8 — Your Garden-Path Sentence
+# MODULE 7 — Your Garden-Path Sentence
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell
 def _(module_nav, mo):
-    show_m8 = module_nav.value == "m8"
-    return (show_m8,)
+    show_m7 = module_nav.value == "m7"
+    return (show_m7,)
 
 
 @app.cell
-def _(gp_df, mo, show_m8):
-    mo.stop(not show_m8)
+def _(gp_df, mo, show_m7):
+    mo.stop(not show_m7)
     example_rows = gp_df[gp_df["condition"].isin(["NPZ", "NPS"])].head(8)
     example_lookup: dict[str, tuple[str, str]] = {}
     for _, r in example_rows.iterrows():
@@ -1156,14 +1153,14 @@ def _(
     saes_available,
     score_button,
     score_sentence,
-    show_m8,
+    show_m7,
     timed_call,
     top_next_cache,
     top_next_tokens,
     tug_of_war_html,
     use_custom,
 ):
-    mo.stop(not show_m8)
+    mo.stop(not show_m7)
 
     if use_custom.value:
         user_sentence, condition = custom_sentence.value, custom_condition.value
@@ -1253,7 +1250,7 @@ def _(
     )
 
     _content = [
-        mo.md("## 8. Build your own garden-path sentence"),
+        mo.md("## 7. Build your own garden-path sentence"),
         mo.md(
             "**Extension:** apply the paper's metric and causal tools to novel input. "
             "Curated examples work instantly; custom text needs live mode."

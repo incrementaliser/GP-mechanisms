@@ -256,16 +256,17 @@ button[role="radio"] > span {
   color: #64748b;
 }
 
-/* CSS-only tooltip (data-tooltip avoids native browser title popup) */
-.gp-status-indicator[data-tooltip]:hover::after {
-  content: attr(data-tooltip);
+/* CSS-only tooltip (data-gp-tip avoids marimo's data-tooltip Radix wrapper) */
+.gp-status-indicator[data-gp-tip]:hover::after {
+  content: attr(data-gp-tip);
   position: absolute;
   left: 0;
   bottom: calc(100% + 0.35rem);
-  max-width: 16rem;
+  min-width: 14rem;
+  max-width: 26rem;
   background: #1e293b;
   color: #f1f5f9;
-  padding: 0.35rem 0.5rem;
+  padding: 0.45rem 0.65rem;
   border-radius: 4px;
   font-size: 0.72rem;
   font-weight: 400;

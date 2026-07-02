@@ -52,7 +52,8 @@ def _status_row(label: str, ok: bool, tooltip: str) -> str:
     safe_label = html.escape(label)
     return (
         f'<div class="gp-status-row">'
-        f'<span class="gp-status-indicator" data-tooltip="{safe_tooltip}">'
+        # Use data-gp-tip (not data-tooltip) so marimo does not add a second Radix tooltip.
+        f'<span class="gp-status-indicator" data-gp-tip="{safe_tooltip}">'
         f'<span class="{dot_class}" aria-hidden="true"></span>'
         f'<span class="gp-status-label">{safe_label}</span>'
         f"</span></div>"

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import html
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Literal
 
+import marimo as mo
 from marimo._output.formatting import as_html
 from marimo._output.hypertext import Html
+
+ThemeMode = Literal["light", "dark"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +46,40 @@ def wrap_with_class(item: object, class_name: str) -> Html:
 def module_nav_full_options() -> dict[str, str]:
     """Return full section labels for the open sidebar navigation radio."""
     return {spec.full_title: spec.value for spec in SECTIONS}
+
+
+def initial_theme(app_meta_theme: str, request_theme: str | None = None) -> ThemeMode:
+    """Normalize marimo app-meta or request cookie theme to light or dark."""
+    if request_theme in ("light", "dark"):
+        return request_theme  # type: ignore[return-value]
+    return "dark" if app_meta_theme == "dark" else "light"
+
+
+def theme_from_request(request: object | None) -> ThemeMode | None:
+    """Read the persisted notebook theme cookie from the active HTTP request."""
+    if request is None:
+        return None
+    cookies = getattr(request, "cookies", None)
+    if not isinstance(cookies, dict):
+        return None
+    value = cookies.get("gp-notebook-theme")
+    return value if value in ("light", "dark") else None
+
+
+def build_theme_toggle(theme: str, light_button: object, dark_button: object) -> Html:
+    """Wrap reactive sun/moon marimo buttons in the sidebar theme-toggle chrome."""
+    safe_theme: ThemeMode = "dark" if theme == "dark" else "light"
+    state_class = "gp-theme-is-dark" if safe_theme == "dark" else "gp-theme-is-light"
+    buttons_row = mo.hstack(
+        [
+            wrap_with_class(light_button, "gp-theme-btn gp-theme-btn-light"),
+            wrap_with_class(dark_button, "gp-theme-btn gp-theme-btn-dark"),
+        ],
+        gap=0.15,
+        align="center",
+        justify="center",
+    )
+    return wrap_with_class(buttons_row, f"gp-theme-toggle {state_class}")
 
 
 def _status_row(label: str, ok: bool, tooltip: str) -> str:

@@ -25,8 +25,5 @@ dependencies = [
 [tool.marimo.runtime]
 dotenv = [".env", ".env.testing"]
 
-[tool.marimo.display]
-theme = "light"
-
 [tool.marimo]
 formatting = { line_length = 100 }

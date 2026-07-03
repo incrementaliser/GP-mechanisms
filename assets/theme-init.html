@@ -1,0 +1,115 @@
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "gp-notebook-theme";
+
+  function applyToTarget(target, theme) {
+    if (!target) return;
+    target.classList.remove("light", "dark", "light-theme", "dark-theme");
+    target.classList.add(theme, theme + "-theme");
+    target.dataset.theme = theme;
+  }
+
+  function applyDomTheme(theme) {
+    if (theme !== "light" && theme !== "dark") return;
+    applyToTarget(document.documentElement, theme);
+    applyToTarget(document.body, theme);
+    document.documentElement.dataset.gpTheme = theme;
+  }
+
+  function themeFromCookie() {
+    var parts = document.cookie.split("; ");
+    for (var i = 0; i < parts.length; i++) {
+      var eq = parts[i].indexOf("=");
+      if (eq === -1) continue;
+      var name = parts[i].slice(0, eq);
+      if (name !== STORAGE_KEY) continue;
+      var value = decodeURIComponent(parts[i].slice(eq + 1));
+      return value === "light" || value === "dark" ? value : null;
+    }
+    return null;
+  }
+
+  function themeFromStorage() {
+    try {
+      var value = localStorage.getItem(STORAGE_KEY);
+      if (value === "light" || value === "dark") return value;
+    } catch (err) {
+      /* ignore quota / private mode */
+    }
+    return themeFromCookie();
+  }
+
+  function themeFromSystem() {
+    if (typeof window.matchMedia !== "function") return null;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function persistStorage(theme) {
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch (err) {
+      /* ignore quota / private mode */
+    }
+    document.cookie =
+      STORAGE_KEY + "=" + encodeURIComponent(theme) + ";path=/;max-age=31536000;SameSite=Lax";
+  }
+
+  window.gpApplyTheme = function (theme) {
+    if (theme !== "light" && theme !== "dark") return;
+    applyDomTheme(theme);
+    persistStorage(theme);
+  };
+
+  function themeFromToggle() {
+    var toggle = document.querySelector(".gp-theme-toggle");
+    if (!toggle) return null;
+    if (toggle.classList.contains("gp-theme-is-dark")) return "dark";
+    if (toggle.classList.contains("gp-theme-is-light")) return "light";
+    return null;
+  }
+
+  /** Match toggle button highlight to the current DOM theme (cosmetic only). */
+  function alignToggleWithDom() {
+    var theme = document.body.dataset.theme;
+    var toggle = document.querySelector(".gp-theme-toggle");
+    if (!toggle || (theme !== "light" && theme !== "dark")) return;
+    toggle.classList.remove("gp-theme-is-light", "gp-theme-is-dark");
+    toggle.classList.add(theme === "dark" ? "gp-theme-is-dark" : "gp-theme-is-light");
+  }
+
+  /** Push Python-driven toggle class changes onto document/body theme classes. */
+  function syncThemeFromToggle() {
+    var theme = themeFromToggle();
+    if (!theme || document.body.dataset.theme === theme) return;
+    applyDomTheme(theme);
+    persistStorage(theme);
+  }
+
+  function watchThemeToggle() {
+    var toggle = document.querySelector(".gp-theme-toggle");
+    if (!toggle || toggle.dataset.gpThemeWatch === "1") return;
+    toggle.dataset.gpThemeWatch = "1";
+    alignToggleWithDom();
+    var observer = new MutationObserver(syncThemeFromToggle);
+    observer.observe(toggle, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  var bootTheme = themeFromStorage() || themeFromSystem();
+  if (bootTheme) {
+    applyDomTheme(bootTheme);
+    persistStorage(bootTheme);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      watchThemeToggle();
+      setInterval(watchThemeToggle, 500);
+    });
+  } else {
+    watchThemeToggle();
+    setInterval(watchThemeToggle, 500);
+  }
+})();
+</script>

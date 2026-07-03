@@ -3,7 +3,7 @@
 import marimo
 
 __generated_with = "0.23.9"
-app = marimo.App(width="full", css_file="assets/sidebar.css")
+app = marimo.App(width="full", css_file="assets/sidebar.css", html_head_file="assets/theme-init.html")
 
 
 @app.cell
@@ -12,6 +12,47 @@ def _():
 
     return (mo,)
 
+
+@app.cell
+def _(mo):
+    from gp_notebook.sidebar_nav import initial_theme, theme_from_request
+
+    _request = mo.app_meta().request
+    get_theme, set_theme = mo.state(
+        initial_theme(mo.app_meta().theme, theme_from_request(_request)),
+        allow_self_loops=True,
+    )
+    return get_theme, set_theme
+
+
+@app.cell
+def _(get_theme, mo, set_theme):
+    from gp_notebook.sidebar_nav import build_theme_toggle
+
+    theme = get_theme()
+
+    def _set_light(_value: object) -> int:
+        set_theme("light")
+        return 0
+
+    def _set_dark(_value: object) -> int:
+        set_theme("dark")
+        return 0
+
+    _sun = '<iconify-icon icon="lucide:sun" width="18" height="18"></iconify-icon>'
+    _moon = '<iconify-icon icon="lucide:moon" width="18" height="18"></iconify-icon>'
+    light_button = mo.ui.button(
+        label=_sun,
+        on_click=_set_light,
+        tooltip="Light mode",
+    )
+    dark_button = mo.ui.button(
+        label=_moon,
+        on_click=_set_dark,
+        tooltip="Dark mode",
+    )
+    theme_toggle = build_theme_toggle(theme, light_button, dark_button)
+    return theme, theme_toggle
 
 @app.cell
 def _(mo):
@@ -88,7 +129,7 @@ def _(mo, show_intro):
 
 
 @app.cell
-def _(live_switch, module_nav, mo):
+def _(live_switch, module_nav, mo, theme_toggle):
     from gp_notebook.cache_status import cache_status_markdown, missing_required_caches
     from gp_notebook.device import device_status_message, live_mode_available as _live_mode_available
     from gp_notebook.paths import saes_available as _sidebar_saes_available
@@ -122,7 +163,7 @@ def _(live_switch, module_nav, mo):
                     wrap_with_class(
                         mo.vstack(
                             [
-                                mo.md("### Navigation"),
+                                theme_toggle,
                                 wrap_with_class(module_nav, "gp-sidebar-nav"),
                                 mo.md("### Execution"),
                                 live_switch,
@@ -186,6 +227,7 @@ def _(mo, show_intro):
     from gp_notebook.runtime import get_hf_model, runtime_status_line, timed_call
     from gp_notebook.viz import (
         activation_heatmap,
+        apply_plotly_theme,
         attention_to_last_token_scores,
         behavioral_figure,
         circuit_svg,
@@ -211,6 +253,7 @@ def _(mo, show_intro):
         ASSETS_DIR,
         MODEL_NAME,
         activation_heatmap,
+        apply_plotly_theme,
         atp_ig_cache,
         attention_to_last_token_scores,
         attention_view,
@@ -455,6 +498,7 @@ def _(gp_df, mo, show_m1):
 @app.cell
 def _(
     attention_to_last_token_scores,
+    apply_plotly_theme,
     colored_token_view,
     gp_df,
     load_json_cache,
@@ -465,6 +509,7 @@ def _(
     reveal,
     show_m1,
     structure,
+    theme,
     token_reveal_html,
     verb_type,
     np,
@@ -508,6 +553,7 @@ def _(
         prefix_fig.update_traces(
             selector=dict(name="p_non_gp"), line_color="#2980b9", name="p(non-GP)"
         )
+        apply_plotly_theme(prefix_fig, theme)
         _content.extend([mo.md("### Model commitment timeline"), prefix_fig])
 
     attn_path = f"attention_{structure.value.lower()}.json"
@@ -559,6 +605,7 @@ def _(behavioral_scored, behavioral_summary, mo, show_m2):
 
 @app.cell
 def _(
+    apply_plotly_theme,
     behavioral_figure,
     behavioral_summary,
     colored_token_view,
@@ -568,6 +615,7 @@ def _(
     mo,
     px,
     show_m2,
+    theme,
     top_next_cache,
 ):
     mo.stop(not show_m2)
@@ -578,7 +626,7 @@ def _(
     if behavioral_summary is None:
         _content.append(mo.callout("Run `uv run python precompute.py`.", kind="warn"))
     else:
-        behavior_fig = behavioral_figure(behavioral_summary)
+        behavior_fig = apply_plotly_theme(behavioral_figure(behavioral_summary), theme)
         table_selection = drill_table.value
         if table_selection is not None and len(table_selection) > 0:
             selected = table_selection.iloc[0].to_dict()
@@ -590,6 +638,7 @@ def _(
             labels={"x": "", "y": "probability"},
             title=f"Item {selected['item']} ({selected['condition']})",
         )
+        apply_plotly_theme(token_bar, theme)
         _content.extend([behavior_fig, mo.md("### Sentence drill-down"), drill_table, token_bar])
 
         if top_next_cache is not None:
@@ -604,6 +653,7 @@ def _(
                     y="probability",
                     title="Top next-token probabilities at critical position",
                 )
+                apply_plotly_theme(next_fig, theme)
                 _content.append(next_fig)
 
         cond_key = selected["condition"].lower()
@@ -684,6 +734,7 @@ def _(
 
 @app.cell
 def _(
+    apply_plotly_theme,
     atp_ig_cache,
     category_counts,
     category_filter,
@@ -702,6 +753,7 @@ def _(
     ranked,
     show_m3,
     spike_bar_html,
+    theme,
 ):
     mo.stop(not show_m3)
     counts = category_counts(circuit_condition.value)
@@ -727,6 +779,7 @@ def _(
         title="AtP-IG demo: top features by estimated indirect effect",
         labels={"ie_hat": "ÎE (demo)", "Feature": "Feature id"},
     )
+    apply_plotly_theme(ie_fig, theme)
 
     gallery_feats = in_circuit.head(6) if not in_circuit.empty else ranked.head(6)
     narrative = layer_narrative(circuit_condition.value)
@@ -821,6 +874,7 @@ def _(interventions_df, live_switch, mo, show_m4):
 
 @app.cell
 def _(
+    apply_plotly_theme,
     clause_slider,
     colored_token_view,
     gp_df,
@@ -840,6 +894,7 @@ def _(
     sentence_pick,
     show_m4,
     subject_slider,
+    theme,
     timed_call,
     tug_of_war_html,
 ):
@@ -909,6 +964,7 @@ def _(
             title=f"Paper Figure 4 ({cond})",
             labels={"mean_diff": "p(GP) − p(non-GP)"},
         )
+        apply_plotly_theme(paper_chart, theme)
 
     _tok_act = load_parquet_cache(f"token_activations_{cond.lower()}.parquet")
     feat_panels: list = []
@@ -979,6 +1035,7 @@ def _(mo, probe_cache, show_m5):
 @app.cell
 def _(
     activation_heatmap,
+    apply_plotly_theme,
     colored_token_view,
     input_type,
     load_parquet_cache,
@@ -990,11 +1047,12 @@ def _(
     representative_activation_matrix,
     rq2_condition,
     show_m5,
+    theme,
 ):
     mo.stop(not show_m5)
     matrix = representative_activation_matrix(rq2_condition.value)
-    activation_fig = activation_heatmap(matrix)
-    probe_fig = probe_figure5_plot(probe_cache, rq2_condition.value)
+    activation_fig = apply_plotly_theme(activation_heatmap(matrix), theme)
+    probe_fig = apply_plotly_theme(probe_figure5_plot(probe_cache, rq2_condition.value), theme)
 
     serial_svg = """<svg width="300" height="140"><text x="8" y="16" font-size="12">Serial parser</text>
     <circle cx="80" cy="70" r="10" fill="#c0392b"/><text x="50" y="100" font-size="10">one reading</text></svg>"""
@@ -1143,6 +1201,7 @@ def _(gp_df, mo, show_m7):
 @app.cell
 def _(
     MODEL_NAME,
+    apply_plotly_theme,
     behavioral_scored,
     colored_token_view,
     custom_condition,
@@ -1161,6 +1220,7 @@ def _(
     score_button,
     score_sentence,
     show_m7,
+    theme,
     timed_call,
     top_next_cache,
     top_next_tokens,
@@ -1280,7 +1340,7 @@ def _(
         _content.append(mo.md("_After syntactic clamp: reading preference should flip._"))
     _content.extend([
         mo.md("### Faithfulness budget (Appendix C)"),
-        faithfulness_tradeoff(),
+        apply_plotly_theme(faithfulness_tradeoff(), theme),
         mo.md(
             """
 ### Closing takeaways

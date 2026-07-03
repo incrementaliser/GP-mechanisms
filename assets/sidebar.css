@@ -1,6 +1,33 @@
 /* Garden-path notebook: compact section rail when sidebar is collapsed */
 
-.app-sidebar[data-expanded="false"] .gp-sidebar-main > div > :not(.gp-sidebar-nav),
+:root {
+  --gp-accent-bg: #dbeafe;
+  --gp-accent-fg: #1d4ed8;
+  --gp-muted-fg: #475569;
+  --gp-status-bg: #f8fafc;
+  --gp-status-border: #e2e8f0;
+  --gp-status-muted: #64748b;
+  --gp-tooltip-bg: #1e293b;
+  --gp-tooltip-fg: #f1f5f9;
+}
+
+html[data-theme="dark"],
+html.dark,
+html.dark-theme,
+body[data-theme="dark"],
+body.dark,
+body.dark-theme {
+  --gp-accent-bg: #1e3a5f;
+  --gp-accent-fg: #93c5fd;
+  --gp-muted-fg: #94a3b8;
+  --gp-status-bg: #1e293b;
+  --gp-status-border: #334155;
+  --gp-status-muted: #64748b;
+  --gp-tooltip-bg: #0f172a;
+  --gp-tooltip-fg: #e2e8f0;
+}
+
+.app-sidebar[data-expanded="false"] .gp-sidebar-main > div > :not(.gp-sidebar-nav):not(.gp-theme-toggle),
 .app-sidebar[data-expanded="false"] .gp-status-box-wrapper {
   display: none !important;
 }
@@ -19,7 +46,7 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding-top: 0.25rem;
+  padding-top: 0.75rem;
 }
 
 /* Radio rows live in marimo-radio shadow DOM — use :host-context for collapsed rail */
@@ -56,15 +83,15 @@
   border-radius: 8px;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--gp-muted-fg);
   cursor: pointer;
   overflow: hidden;
   white-space: nowrap;
 }
 
 :host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:has(button[data-state="checked"]) label {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--gp-accent-bg);
+  color: var(--gp-accent-fg);
 }
 
 /* Introduction: home icon in collapsed rail */
@@ -203,11 +230,11 @@ button[role="radio"] > span {
   gap: 5px;
   padding: 0.5rem 0.55rem 0.5rem 15px;
   height: 90px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gp-status-border);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--gp-status-bg);
   font-size: 0.78rem;
-  color: #475569;
+  color: var(--gp-muted-fg);
 }
 
 .gp-status-row {
@@ -251,9 +278,9 @@ button[role="radio"] > span {
   margin-top: 0.15rem;
   padding-top: 0.35rem;
   padding-left: 0.15rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--gp-status-border);
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--gp-status-muted);
 }
 
 /* CSS-only tooltip (data-gp-tip avoids marimo's data-tooltip Radix wrapper) */
@@ -264,8 +291,8 @@ button[role="radio"] > span {
   bottom: calc(100% + 0.35rem);
   min-width: 14rem;
   max-width: 26rem;
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--gp-tooltip-bg);
+  color: var(--gp-tooltip-fg);
   padding: 0.45rem 0.65rem;
   border-radius: 4px;
   font-size: 0.72rem;
@@ -275,4 +302,302 @@ button[role="radio"] > span {
   pointer-events: none;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+}
+
+/* ── Theme toggle (sun / moon) ───────────────────────────────────── */
+
+.gp-theme-toggle {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  transition: transform 0.28s ease;
+}
+
+.app-sidebar[data-expanded="false"] .gp-theme-toggle {
+  transform: rotate(90deg);
+  margin-top: 2.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.gp-theme-toggle__buttons,
+.gp-theme-toggle > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.gp-theme-toggle__buttons .gp-theme-btn {
+  display: inline-flex;
+}
+
+.gp-theme-toggle__buttons marimo-button {
+  display: inline-flex;
+}
+
+/* marimo-button shadow DOM: icon-only sun/moon controls */
+:host-context(.gp-theme-btn) button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  min-width: 2.35rem !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  color: var(--gp-muted-fg);
+}
+
+:host-context(.gp-theme-is-light .gp-theme-btn-light) button,
+:host-context(.gp-theme-is-dark .gp-theme-btn-dark) button {
+  background: var(--gp-accent-bg) !important;
+  color: var(--gp-accent-fg) !important;
+}
+
+/* ── Hero / header cards ─────────────────────────────────────────── */
+
+.gp-header {
+  color: #1f2937;
+  margin: 0 0 20px;
+  font-family: system-ui, sans-serif;
+}
+
+.gp-header__card {
+  padding: 18px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #fef3c7 100%);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.gp-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.gp-header__title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.gp-header__links {
+  font-size: 0.84rem;
+  color: var(--gp-muted-fg);
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gp-header__links a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.gp-hero {
+  color: #1f2937;
+  margin: 0 0 20px;
+  font-family: system-ui, sans-serif;
+}
+
+.gp-hero__grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+  padding: 28px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #fef3c7 100%);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.gp-hero__badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gp-hero__title {
+  margin: 12px 0 8px;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 850;
+}
+
+.gp-hero__subtitle {
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.gp-hero__links {
+  margin-top: 14px;
+  font-size: 0.88rem;
+  color: var(--gp-muted-fg);
+}
+
+.gp-hero__links a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.gp-hero__diagram {
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.gp-hero__svg-muted {
+  fill: #64748b;
+}
+
+@media (max-width: 760px) {
+  .gp-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .gp-header__links {
+    text-align: left !important;
+    white-space: normal !important;
+  }
+
+  .gp-header__title {
+    white-space: normal;
+  }
+
+  .gp-hero__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-theme="dark"] .gp-header,
+html.dark .gp-header,
+html.dark-theme .gp-header,
+body.dark-theme .gp-header,
+body[data-theme="dark"] .gp-header,
+html[data-theme="dark"] .gp-hero,
+html.dark .gp-hero,
+html.dark-theme .gp-hero,
+body.dark-theme .gp-hero,
+body[data-theme="dark"] .gp-hero {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .gp-header__card,
+html.dark .gp-header__card,
+html.dark-theme .gp-header__card,
+body.dark-theme .gp-header__card,
+body[data-theme="dark"] .gp-header__card,
+html[data-theme="dark"] .gp-hero__grid,
+html.dark .gp-hero__grid,
+html.dark-theme .gp-hero__grid,
+body.dark-theme .gp-hero__grid,
+body[data-theme="dark"] .gp-hero__grid {
+  background: linear-gradient(135deg, #1e293b 0%, #1e1b4b 55%, #422006 100%);
+  border-color: rgba(100, 116, 139, 0.45);
+}
+
+html[data-theme="dark"] .gp-header__links,
+html.dark .gp-header__links,
+html.dark-theme .gp-header__links,
+body.dark-theme .gp-header__links,
+body[data-theme="dark"] .gp-header__links,
+html[data-theme="dark"] .gp-hero__links,
+html.dark .gp-hero__links,
+html.dark-theme .gp-hero__links,
+body.dark-theme .gp-hero__links,
+body[data-theme="dark"] .gp-hero__links,
+html[data-theme="dark"] .gp-hero__subtitle,
+html.dark .gp-hero__subtitle,
+html.dark-theme .gp-hero__subtitle,
+body.dark-theme .gp-hero__subtitle,
+body[data-theme="dark"] .gp-hero__subtitle {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .gp-header__links a,
+html.dark .gp-header__links a,
+html.dark-theme .gp-header__links a,
+body.dark-theme .gp-header__links a,
+body[data-theme="dark"] .gp-header__links a,
+html[data-theme="dark"] .gp-hero__links a,
+html.dark .gp-hero__links a,
+html.dark-theme .gp-hero__links a,
+body.dark-theme .gp-hero__links a,
+body[data-theme="dark"] .gp-hero__links a {
+  color: #60a5fa;
+}
+
+html[data-theme="dark"] .gp-hero__badge,
+html.dark .gp-hero__badge,
+html.dark-theme .gp-hero__badge,
+body.dark-theme .gp-hero__badge,
+body[data-theme="dark"] .gp-hero__badge {
+  background: var(--gp-accent-bg);
+  color: var(--gp-accent-fg);
+}
+
+html[data-theme="dark"] .gp-hero__diagram,
+html.dark .gp-hero__diagram,
+html.dark-theme .gp-hero__diagram,
+body.dark-theme .gp-hero__diagram,
+body[data-theme="dark"] .gp-hero__diagram {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(100, 116, 139, 0.35);
+}
+
+/* ── Dark-mode sidebar chrome ────────────────────────────────────── */
+
+html[data-theme="dark"] .gp-status-box,
+html.dark .gp-status-box,
+html.dark-theme .gp-status-box,
+body.dark-theme .gp-status-box,
+body[data-theme="dark"] .gp-status-box {
+  background: var(--gp-status-bg);
+  border-color: var(--gp-status-border);
+  color: var(--gp-muted-fg);
+}
+
+html[data-theme="dark"] .gp-status-timing,
+html.dark .gp-status-timing,
+html.dark-theme .gp-status-timing,
+body.dark-theme .gp-status-timing,
+body[data-theme="dark"] .gp-status-timing {
+  border-top-color: var(--gp-status-border);
+  color: var(--gp-status-muted);
+}
+
+html[data-theme="dark"] .gp-status-indicator[data-gp-tip]:hover::after,
+html.dark .gp-status-indicator[data-gp-tip]:hover::after,
+html.dark-theme .gp-status-indicator[data-gp-tip]:hover::after,
+body.dark-theme .gp-status-indicator[data-gp-tip]:hover::after,
+body[data-theme="dark"] .gp-status-indicator[data-gp-tip]:hover::after {
+  background: var(--gp-tooltip-bg);
+  color: var(--gp-tooltip-fg);
+}
+
+:host-context(html[data-theme="dark"]) [role="radiogroup"] > .flex.items-center.space-x-2 label,
+:host-context(html.dark) [role="radiogroup"] > .flex.items-center.space-x-2 label,
+:host-context(html.dark-theme) [role="radiogroup"] > .flex.items-center.space-x-2 label,
+:host-context(body.dark-theme) [role="radiogroup"] > .flex.items-center.space-x-2 label,
+:host-context(body[data-theme="dark"]) [role="radiogroup"] > .flex.items-center.space-x-2 label {
+  color: var(--gp-muted-fg);
 }

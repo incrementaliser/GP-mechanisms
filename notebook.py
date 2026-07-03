@@ -110,9 +110,11 @@ readings coexist, and whether the model revises its parse when disambiguated.
         "sidebar for GPU-backed interventions and custom sentences._"
     )
     recommended = mo.callout(
-        "**Recommended path:** M1 Feel the garden path → M2 Behavioral lab → "
-        "M3 Feature microscope → **M4 Flip the reading** → M5 Multiple readings → "
-        "M6 Repair vs reanalysis → M7 Your sentence",
+        mo.md(
+            "**Recommended path:** M1 Feel the garden path → M2 Behavioral lab → "
+            "M3 Feature microscope → **M4 Flip the reading** → M5 Multiple readings → "
+            "M6 Repair vs reanalysis → M7 Your sentence"
+        ),
         kind="success",
     )
     mo.vstack([hero, tldr, lay_summary, reader_note, recommended])
@@ -624,7 +626,9 @@ def _(
         mo.md("Reproduction of **Figure 2**. MV/RR is shown but excluded from later analyses (paper §4.1)."),
     ]
     if behavioral_summary is None:
-        _content.append(mo.callout("Run `uv run python precompute.py`.", kind="warn"))
+        _content.append(
+            mo.callout(mo.md("Run `uv run python precompute.py`."), kind="warn")
+        )
     else:
         behavior_fig = apply_plotly_theme(behavioral_figure(behavioral_summary), theme)
         table_selection = drill_table.value
@@ -1143,8 +1147,10 @@ def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m6
             ]
         ),
         mo.callout(
-            "Gemma 2 does **neither** human-style repair nor syntactic reanalysis: "
-            "GPRC circuits barely overlap garden-path circuits and rely on spurious yes/no features.",
+            mo.md(
+                "Gemma 2 does **neither** human-style repair nor syntactic reanalysis: "
+                "GPRC circuits barely overlap garden-path circuits and rely on spurious yes/no features."
+            ),
             kind="warn",
         ),
     ])

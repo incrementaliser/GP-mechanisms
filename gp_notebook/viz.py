@@ -14,16 +14,16 @@ import plotly.graph_objects as go
 _PAPER_LINKS_HTML = """
 <div class="gp-hero__links">
   <a href="https://www.alphaxiv.org/abs/2412.05353">alphaXiv</a>
-  · <a href="https://arxiv.org/abs/2412.05353">arXiv:2412.05353</a>
-  · Hanna &amp; Mueller, NAACL 2025
+  · Hanna &amp; Mueller (NAACL 2025)
+  · Reproduced by: <a href="https://incrementaliser.github.io/">Arash Ashrafzadeh</a>
 </div>
 """
 
 _PAPER_LINKS_COMPACT_HTML = """
 <div class="gp-header__links">
   <a href="https://www.alphaxiv.org/abs/2412.05353">alphaXiv</a>
-  · <a href="https://arxiv.org/abs/2412.05353">arXiv:2412.05353</a>
-  · Hanna &amp; Mueller, NAACL 2025
+  · Hanna &amp; Mueller (NAACL 2025)
+  · Reproduced by: <a href="https://incrementaliser.github.io/">Arash Ashrafzadeh</a>
 </div>
 """
 

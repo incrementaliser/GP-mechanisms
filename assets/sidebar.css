@@ -47,6 +47,8 @@ body.dark-theme {
   align-items: center;
   width: 100%;
   padding-top: 0.75rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 5rem);
 }
 
 /* Radio rows live in marimo-radio shadow DOM — use :host-context for collapsed rail */
@@ -117,7 +119,7 @@ body.dark-theme {
   mask-size: contain;
 }
 
-/* Modules 0–7: digit shortcuts in collapsed rail */
+/* Modules 0–8: digit shortcuts in collapsed rail */
 :host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:not(:first-child) label {
   font-size: 0;
   line-height: 0;
@@ -138,6 +140,7 @@ body.dark-theme {
 :host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(7) label::before { content: "5"; }
 :host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(8) label::before { content: "6"; }
 :host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(9) label::before { content: "7"; }
+:host-context(.app-sidebar[data-expanded="false"]) [role="radiogroup"] > .flex.items-center.space-x-2:nth-child(10) label::before { content: "8"; }
 
 /* Hide the radio group label ("Section") in collapsed rail */
 :host-context(.app-sidebar[data-expanded="false"]) .text-sm.font-semibold.leading-none,

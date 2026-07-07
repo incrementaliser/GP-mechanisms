@@ -76,6 +76,7 @@ def _(module_nav, mo):
 @app.cell
 def _(mo, show_intro):
     mo.stop(not show_intro)
+    from gp_notebook.sidebar_nav import wrap_with_class as _wrap_with_class
     from gp_notebook.viz import notebook_hero_html as _hero_html
 
     hero = mo.Html(_hero_html())
@@ -113,11 +114,14 @@ readings coexist, and whether the model revises its parse when disambiguated.
         mo.md(
             "**Recommended path:** M1 Feel the garden path → M2 Behavioral lab → "
             "M3 Feature microscope → **M4 Flip the reading** → M5 Multiple readings → "
-            "M6 Repair vs reanalysis → M7 Your sentence"
+            "M6 Repair vs reanalysis → M7 Your sentence → M8 Outro"
         ),
         kind="success",
     )
-    mo.vstack([hero, tldr, lay_summary, reader_note, recommended])
+    _wrap_with_class(
+        mo.vstack([hero, tldr, lay_summary, reader_note, recommended]),
+        "gp-intro-page",
+    )
     return
 
 
@@ -226,6 +230,11 @@ def _(mo, show_intro):
     from gp_notebook.neuronpedia import feature_card_html, feature_gallery_html, spike_bar_html
     from gp_notebook.paths import ASSETS_DIR, load_gp_dataset, load_json_cache, load_parquet_cache
     from gp_notebook.probes import load_probe_cache
+    from gp_notebook.repro import (
+        reproducibility_matrix_df,
+        reproducibility_summary_markdown,
+        repro_status_df,
+    )
     from gp_notebook.runtime import get_hf_model, runtime_status_line, timed_call
     from gp_notebook.viz import (
         activation_heatmap,
@@ -293,6 +302,9 @@ def _(mo, show_intro):
         px,
         rank_features_by_ie,
         reading_bubbles_html,
+        reproducibility_matrix_df,
+        reproducibility_summary_markdown,
+        repro_status_df,
         representative_activation_matrix,
         run_intervention_suite,
         runtime_status_line,
@@ -339,7 +351,7 @@ def _(load_json_cache, mo, show_m0):
 | **Circuit** | Minimal subgraph of features that reproduces a behavior. |
 | **Ablation** | Zero a feature and measure the effect — the core causal test. |
 | **AtP-IG** | Gradient-based estimate of each feature's causal contribution. |
-| **Faithfulness** | How well a circuit matches the full model (ideally ≈ 1.0). |
+| **Faithfulness** | How well a circuit matches the full model (ideally $\approx 1.0$). |
 
 We apply these tools to **garden-path sentences** — inputs with two competing syntactic readings.
 """
@@ -348,10 +360,11 @@ We apply these tools to **garden-path sentences** — inputs with two competing 
         {
             "Sparse Autoencoder (SAE)": (
                 r"$f = \mathrm{ReLU}(W_e(x - b_d) + b_e)$, $\hat{x} = W_d f + b_d$. "
-                "Each dimension of **f** is an interpretable feature."
+                r"Each dimension of $f$ is an interpretable feature."
             ),
             "Garden-path metric": (
-                "m = p(GP) − p(non-GP). GP = comma/period continuation; non-GP = ' was'."
+                r"$m = p(\text{GP}) - p(\text{non-GP})$. "
+                r"$\text{GP}$ = comma/period continuation; $\text{non-GP}$ = $\texttt{was}$ continuation."
             ),
             "Neuronpedia": (
                 "Interactive atlas for inspecting SAE features on real text — "
@@ -390,9 +403,9 @@ def _(load_parquet_cache, mo, np, show_m0, sparsity, spike_bar_html):
     active = int((sparse_features > 0).sum())
     sae_svg = """
     <svg width="640" height="120" xmlns="http://www.w3.org/2000/svg">
-      <text x="10" y="30" font-size="14">x (activation)</text>
-      <text x="280" y="30" font-size="14">f = ReLU(W_e(x - b_d) + b_e)</text>
-      <text x="520" y="30" font-size="14">x̂ = W_d f + b_d</text>
+      <text x="80" y="30" font-size="14" text-anchor="middle">x</text>
+      <text x="300" y="30" font-size="14" text-anchor="middle">f</text>
+      <text x="500" y="30" font-size="14" text-anchor="middle">x̂</text>
       <rect x="60" y="50" width="80" height="40" fill="#d5dbdb" />
       <polygon points="160,70 220,70 240,50 240,90 220,70" fill="#566573"/>
       <rect x="260" y="50" width="80" height="40" fill="#f9e79f" />
@@ -402,6 +415,9 @@ def _(load_parquet_cache, mo, np, show_m0, sparsity, spike_bar_html):
     """
     _content = [
         mo.md("### SAE primer"),
+        mo.md(
+            r"$x$ (activation) $\rightarrow$ $f = \mathrm{ReLU}(W_e(x - b_d) + b_e)$ $\rightarrow$ $\hat{x} = W_d f + b_d$"
+        ),
         mo.Html(sae_svg),
         sparsity,
         mo.md(f"Toy demo: **{active}** of 32 features active at threshold {sparsity.value:.2f}."),
@@ -464,6 +480,7 @@ def _(mo, show_m0):
 | 5 | Multiple readings | Figure 5 | RQ2 |
 | 6 | Repair vs reanalysis | Table 3, §6 | RQ3 |
 | 7 | Your sentence | Extension | — |
+| 8 | Outro | Repro / wrap-up | — |
 """
     )
     return
@@ -624,6 +641,14 @@ def _(
     _content: list = [
         mo.md("## 2. Behavioral lab — does Pythia get garden-pathed?"),
         mo.md("Reproduction of **Figure 2**. MV/RR is shown but excluded from later analyses (paper §4.1)."),
+        # mo.callout(
+        #     mo.md(
+        #         "This is the most directly reproducible result: run `repro/run_repro.sh behavior` "
+        #         "to execute the original `behavioral_evaluation.py` script and compare its outputs "
+        #         "with the notebook cache."
+        #     ),
+        #     kind="success",
+        # ),
     ]
     if behavioral_summary is None:
         _content.append(
@@ -727,13 +752,14 @@ def _(
     options = {f"{row.Feature} ({row.Category})": row.Feature for _, row in ranked.head(20).iterrows()}
     if not options:
         options = {f"{row.Feature}": row.Feature for _, row in feat_catalog.head(10).iterrows()}
+    feature_options = options
     option_labels = list(options.keys())
     feature_pick = mo.ui.dropdown(
         options=options,
         value=option_labels[0],
         label="Inspect feature",
     )
-    return feature_pick, feat_catalog, ranked
+    return feature_options, feature_pick, feat_catalog, ranked
 
 
 @app.cell
@@ -747,6 +773,7 @@ def _(
     colored_token_view,
     feat_catalog,
     feature_gallery_html,
+    feature_options,
     feature_pick,
     ie_threshold,
     layer_narrative,
@@ -790,8 +817,8 @@ def _(
 
     _tok_act = load_parquet_cache(f"token_activations_{circuit_condition.value.lower()}.parquet")
     selected_feature = feature_pick.value
-    if selected_feature in options:
-        selected_feature = options[selected_feature]
+    if selected_feature in feature_options:
+        selected_feature = feature_options[selected_feature]
     detail_html = mo.md("_Select a feature above for token-level spikes._")
     if selected_feature and selected_feature != "0":
         feat_row = filtered_feats[filtered_feats["Feature"] == selected_feature]
@@ -814,6 +841,14 @@ def _(
 
     _content = [
         mo.md("## 3. Feature microscope — SAE circuits (Figure 3)"),
+        # mo.callout(
+        #     mo.md(
+        #         "Reproducibility note: the feature catalogue comes from the paper authors' annotated "
+        #         "`results/pythia-70m-deduped/*_features.csv` files. The AtP-IG bar chart below is a "
+        #         "demo ranking unless the full circuit pipeline is rerun outside this notebook."
+        #     ),
+        #     kind="warn",
+        # ),
         mo.md(
             "Browse annotated features like [Neuronpedia](https://www.neuronpedia.org/pythia-70m-deduped). "
             "Red = pro-GP; blue = anti-GP."
@@ -997,6 +1032,14 @@ def _(
 
     mo.vstack([
         mo.md("## 4. Intervention sandbox — **flip the model's reading**"),
+        # mo.callout(
+        #     mo.md(
+        #         "The static Figure 4 bars are reproducible only when `repro/run_repro.sh causal` "
+        #         "successfully regenerates `repro/outputs/causal/causal_probabilities.pt`. "
+        #         "Live mode recomputes interventions directly from the model and local SAEs."
+        #     ),
+        #     kind="info",
+        # ),
         mo.md(f"**Sentence:** _{example}_"),
         mo.hstack([sandbox_condition, sentence_pick, preset]),
         mo.hstack([subject_slider, object_slider, clause_slider, random_toggle]),
@@ -1066,6 +1109,14 @@ def _(
 
     _content = [
         mo.md("## 5. One or many readings? (RQ2)"),
+        # mo.callout(
+        #     mo.md(
+        #         "Structural-probe curves require trained `standalone_probes/*.pt` artifacts and "
+        #         "`repro/run_repro.sh probe`. Without those regenerated outputs, this plot is "
+        #         "paper-derived rather than independently reproduced here."
+        #     ),
+        #     kind="warn",
+        # ),
         mo.md("Both pro-GP and anti-GP features activate — the model **hedges** between parses."),
         activation_fig,
         probe_fig,
@@ -1137,6 +1188,14 @@ def _(CIRCUIT_IOU, gprc_condition, gprc_table_df, mo, sample_gprc_items, show_m6
     """
     mo.vstack([
         mo.md("## 6. Repair vs reanalysis? (RQ3)"),
+        # mo.callout(
+        #     mo.md(
+        #         "Table 3 values are paper constants until `repro/run_repro.sh readingcomp` is run "
+        #         "and its log is compared. The harness records model/runtime failures instead of "
+        #         "substituting reported values."
+        #     ),
+        #     kind="warn",
+        # ),
         mo.md("**Table 3** — only Gemma-2-2b answers follow-ups above chance."),
         qa_table,
         mo.Html(overlap_svg),
@@ -1168,7 +1227,7 @@ def _(module_nav, mo):
 
 
 @app.cell
-def _(gp_df, mo, show_m7):
+def _(gp_df, live_switch, mo, show_m7):
     mo.stop(not show_m7)
     example_rows = gp_df[gp_df["condition"].isin(["NPZ", "NPS"])].head(8)
     example_lookup: dict[str, tuple[str, str]] = {}
@@ -1206,15 +1265,12 @@ def _(gp_df, mo, show_m7):
 
 @app.cell
 def _(
-    MODEL_NAME,
-    apply_plotly_theme,
     behavioral_scored,
     colored_token_view,
     custom_condition,
     custom_sentence,
     example_lookup,
     example_pick,
-    faithfulness_tradeoff,
     get_hf_model,
     gp_df,
     intervene_button,
@@ -1226,7 +1282,6 @@ def _(
     score_button,
     score_sentence,
     show_m7,
-    theme,
     timed_call,
     top_next_cache,
     top_next_tokens,
@@ -1344,11 +1399,82 @@ def _(
             tug_of_war_html(intervention_result["mean_p_gp"], intervention_result["mean_p_non_gp"])
         ))
         _content.append(mo.md("_After syntactic clamp: reading preference should flip._"))
-    _content.extend([
-        mo.md("### Faithfulness budget (Appendix C)"),
-        apply_plotly_theme(faithfulness_tradeoff(), theme),
-        mo.md(
-            """
+    mo.vstack(_content)
+    return
+
+
+# ═══════════════════════════════════════════════════════════════════
+# MODULE 8 — Outro
+# ═══════════════════════════════════════════════════════════════════
+
+@app.cell
+def _(module_nav, mo):
+    show_m8 = module_nav.value == "m8"
+    return (show_m8,)
+
+
+@app.cell
+def _(
+    apply_plotly_theme,
+    faithfulness_tradeoff,
+    mo,
+    reproducibility_matrix_df,
+    reproducibility_summary_markdown,
+    repro_status_df,
+    show_m8,
+    theme,
+):
+    mo.stop(not show_m8)
+    status_df = repro_status_df()
+    matrix_df = reproducibility_matrix_df()
+    visible_cols = [
+        "paper_target",
+        "state",
+        "reproducibility",
+        "command",
+        "message",
+    ]
+    if not status_df.empty:
+        status_df = status_df[[col for col in visible_cols if col in status_df.columns]]
+    matrix_cols = [
+        "result_id",
+        "producer",
+        "harness_command",
+        "state",
+        "reproducibility",
+        "notes",
+    ]
+    if not matrix_df.empty:
+        matrix_df = matrix_df[[col for col in matrix_cols if col in matrix_df.columns]]
+    mo.vstack(
+        [
+            mo.md("## 8. Outro"),
+            mo.md("### Reproducibility ledger"),
+            mo.callout(mo.md(reproducibility_summary_markdown()), kind="info"),
+            mo.md(
+                "Run `repro/run_repro.sh core` from the project root to regenerate the feasible "
+                "author-script results into `repro/outputs/` without overwriting notebook assets."
+            ),
+            mo.ui.table(status_df),
+            mo.accordion(
+                {
+                    "Detailed result-to-code matrix": mo.ui.table(matrix_df)
+                    if not matrix_df.empty
+                    else mo.md("_Run `repro/run_repro.sh compare` to create the matrix._")
+                }
+            ),
+            mo.md("### Faithfulness budget (Appendix C)"),
+            # mo.callout(
+            #     mo.md(
+            #         "This faithfulness chart is an illustrative paper-reported budget, not regenerated "
+            #         "by the current notebook harness. Full regeneration needs the author circuit "
+            #         "evaluation scripts and circuit artifacts."
+            #     ),
+            #     kind="warn",
+            # ),
+            apply_plotly_theme(faithfulness_tradeoff(), theme),
+            mo.md(
+                """
 ### Closing takeaways
 
 1. **RQ1:** Syntactic SAE features causally drive garden-path preferences — alongside spurious detectors.
@@ -1357,9 +1483,16 @@ def _(
 
 *You just reverse-engineered incremental parsing in a 70M-parameter LM — one ambiguous noun at a time.*
 """
-        ),
-    ])
-    mo.vstack(_content)
+            ),
+            mo.md(
+                """
+### Future work
+
+_Add your ideas here._
+"""
+            ),
+        ]
+    )
     return
 
 

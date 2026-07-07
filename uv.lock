@@ -740,7 +740,7 @@ wheels = [
 [[package]]
 name = "gp-mechanisms-notebook"
 version = "0.2.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "altair" },
     { name = "captum" },

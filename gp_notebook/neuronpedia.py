@@ -8,6 +8,8 @@ from urllib.parse import quote
 
 import pandas as pd
 
+from gp_notebook.token_display import format_bpe_tokens
+
 NEURONPEDIA_BASE = "https://www.neuronpedia.org/pythia-70m-deduped"
 MODEL_SLUG = "pythia-70m-deduped"
 
@@ -67,7 +69,7 @@ def spike_bar_html(
     label: str = "",
 ) -> str:
     """Render per-token SAE activation spikes as inline bars (Neuronpedia-style)."""
-    tok_list = list(tokens)
+    tok_list = format_bpe_tokens(tokens)
     act_list = list(activations)
     max_act = max(act_list) if act_list else 1.0
     max_act = max(max_act, 1e-6)

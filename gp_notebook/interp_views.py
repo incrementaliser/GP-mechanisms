@@ -9,6 +9,8 @@ import torch
 from circuitsvis.attention import attention_patterns
 from circuitsvis.tokens import colored_tokens, colored_tokens_multi
 
+from gp_notebook.token_display import format_bpe_tokens
+
 
 def _safe_label(label: str) -> str:
     """Escape and normalize quotes so labels are safe inside notebook HTML wrappers."""
@@ -24,9 +26,10 @@ def colored_token_view(
     positive_color: str | None = "#2980b9",
 ) -> str:
     """Render tokens colored by scalar values using circuitsvis, returning embeddable HTML."""
+    display_tokens = format_bpe_tokens(tokens)
     rendered = str(
         colored_tokens(
-            tokens,
+            display_tokens,
             values,
             negative_color=negative_color,
             positive_color=positive_color,
@@ -46,8 +49,9 @@ def multi_feature_token_view(
     feature_names: list[str],
 ) -> str:
     """Render multiple feature activation rows over the same token sequence."""
+    display_tokens = format_bpe_tokens(tokens)
     arr = np.asarray(value_matrix, dtype=np.float32)
-    n_tokens = len(tokens)
+    n_tokens = len(display_tokens)
     n_features = len(feature_names)
     if arr.shape == (n_features, n_tokens):
         arr = arr.T
@@ -57,7 +61,7 @@ def multi_feature_token_view(
             f"({n_tokens}, {n_features}) or ({n_features}, {n_tokens})"
         )
     tensor = torch.from_numpy(arr)
-    return str(colored_tokens_multi(tokens, tensor, feature_names))
+    return str(colored_tokens_multi(display_tokens, tensor, feature_names))
 
 
 def attention_view(
@@ -65,4 +69,4 @@ def attention_view(
     attention: np.ndarray,
 ) -> str:
     """Render attention-pattern heatmaps for all heads in one layer."""
-    return str(attention_patterns(tokens, attention))
+    return str(attention_patterns(format_bpe_tokens(tokens), attention))

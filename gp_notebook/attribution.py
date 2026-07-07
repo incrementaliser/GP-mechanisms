@@ -10,6 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from gp_notebook.behavior import MODEL_NAME, continuation_tokens_for_condition
 from gp_notebook.device import get_torch_device
+from gp_notebook.token_display import format_bpe_tokens
 
 
 def _build_forward_fn(
@@ -47,7 +48,7 @@ def token_attributions(
     non_gp_ids = [tokenizer(t, add_special_tokens=False)["input_ids"][0] for t in cont.non_gp_tokens]
 
     input_ids = tokenizer(sentence, return_tensors="pt")["input_ids"].to(device)
-    tok_strings = tokenizer.convert_ids_to_tokens(input_ids[0].tolist())
+    tok_strings = format_bpe_tokens(tokenizer.convert_ids_to_tokens(input_ids[0].tolist()))
 
     embed_layer = model.gpt_neox.embed_in
     input_embeds = embed_layer(input_ids).detach().requires_grad_(True)

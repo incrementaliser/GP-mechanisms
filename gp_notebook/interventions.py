@@ -14,6 +14,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from gp_notebook.behavior import MODEL_NAME, continuation_tokens_for_condition
+from gp_notebook.token_display import format_bpe_tokens
 from gp_notebook.device import get_torch_device, live_mode_available
 from gp_notebook.paths import FEATURE_RESULTS, PROJECT_ROOT, saes_available
 
@@ -282,7 +283,7 @@ def feature_token_activations(
     rows: list[dict] = []
     for prompt in prompts:
         tok_ids = tokenizer(prompt, return_tensors="pt")["input_ids"]
-        tok_strings = tokenizer.convert_ids_to_tokens(tok_ids[0].tolist())
+        tok_strings = format_bpe_tokens(tokenizer.convert_ids_to_tokens(tok_ids[0].tolist()))
         saved_encodings: dict[str, torch.Tensor] = {}
         try:
             with model.trace(prompt), torch.no_grad():
@@ -339,7 +340,7 @@ def attention_patterns_for_sentence(
     hf_model.eval()
 
     input_ids = tokenizer(sentence, return_tensors="pt")["input_ids"].to(device)
-    tok_strings = tokenizer.convert_ids_to_tokens(input_ids[0].tolist())
+    tok_strings = format_bpe_tokens(tokenizer.convert_ids_to_tokens(input_ids[0].tolist()))
 
     with torch.inference_mode():
         outputs = hf_model(input_ids, output_attentions=True)

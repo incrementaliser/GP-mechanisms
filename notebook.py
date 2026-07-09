@@ -14,12 +14,26 @@ with app.setup:
     with contextlib.suppress(ImportError):
         import torch  # noqa: F401
 
+    # === DESIGN TOKENS (edit gp_notebook/theme_tokens.py :: GP_THEME) ===
+    # Colors, fonts, and Google Fonts URL live in one dict so the look can be
+    # retuned without hunting through CSS / Plotly / SVG helpers.
+    from gp_notebook.theme_tokens import GP_THEME  # noqa: F401
+
 
 @app.cell(hide_code=True)
 def _():
     import marimo as mo
 
     return (mo,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    """Inject CSS variables and font rules from GP_THEME into the page."""
+    from gp_notebook.theme_tokens import css_variables_block
+
+    mo.Html(css_variables_block())
+    return
 
 
 @app.cell(hide_code=True)
@@ -94,37 +108,54 @@ def _(mo, show_intro):
         """
 ### TL;DR
 
-- **Problem:** Autoregressive LMs handle syntactic ambiguities word-by-word, but we do not know
-  *which internal features* drive their preferred reading of garden-path sentences.
-- **Approach:** Sparse autoencoders (SAEs) decompose activations into interpretable features;
-  attribution patching (AtP-IG) locates causally relevant circuits; targeted clamping verifies them.
-- **Findings:** In **Pythia-70m**, garden-path preferences are causally driven by genuine syntactic
-  detectors (subjects, objects, clause boundaries) *working alongside* shallow lexical heuristics,
-  and the model keeps **both readings active at once**. In **Gemma-2-2b** — the model in the paper
-  large enough to answer follow-up questions — those parse features are *not* reused when answering
-  questions about the sentence: neither human-style repair nor reanalysis.
+- **Problem:** Autoregressive LMs handle temporary syntactic ambiguities incrementally, but
+  behavioral surprisal alone does not reveal *which internal features* drive the preferred reading.
+- **Approach:** Sparse autoencoders (SAEs) yield monosemantic features; AtP-IG finds the circuit
+  for $m = p(\\text{GP}) - p(\\text{non-GP})$; targeted clamping verifies causal role.
+- **Findings:** Pythia-70m mixes genuine syntactic detectors with shallow lexical heuristics, and
+  keeps **both readings active in parallel**. Gemma-2-2b answers follow-up questions above chance,
+  yet reuses almost none of the parse circuit (IoU ≤ 0.2%) — neither repair nor reanalysis.
 """
+    )
+    gist = mo.callout(
+        mo.md(
+            """
+**Gist.** This paper is the first SAE + causal-circuit study of garden-path processing: LMs
+maintain parallel parses, but when comprehension is tested after disambiguation they lean on
+spurious non-syntactic features rather than structural repair.
+"""
+        ),
+        kind="neutral",
     )
     lay_summary = mo.callout(
         mo.md(
             """
-**In plain language:** Language models read sentences incrementally — one word at a time —
-like humans listening to speech. A *garden-path* sentence tricks you into one interpretation
-until a later word reveals another. This notebook walks through how the paper
-**reverse-engineers** what happens inside a small LM (Pythia-70m) at the ambiguous noun: which
-internal "detectors" fire, and whether both readings coexist. For the final question — does the
-model *revise* its parse when asked about it afterwards? — the paper switches to the larger
-Gemma-2-2b, because Pythia-70m cannot answer follow-up questions above chance (paper Table 3).
+**In plain language:** Language models read sentences one word at a time. A *garden-path*
+sentence invites one parse until a later word forces another. This notebook reverse-engineers
+what fires inside **Pythia-70m** at the ambiguous noun, then switches to **Gemma-2-2b** for the
+comprehension question — Pythia cannot answer follow-ups above chance (paper Table 3).
 """
         ),
         kind="info",
+    )
+    pipeline = mo.mermaid(
+        """
+flowchart LR
+  locate[Locate features with AtP-IG]
+  annotate[Annotate syntactic roles]
+  intervene[Clamp to flip the reading]
+  locate --> annotate --> intervene
+"""
     )
     _wrap_with_class(
         mo.vstack(
             [
                 hero,
                 tldr,
+                gist,
                 lay_summary,
+                mo.md("### Method in one glance"),
+                pipeline,
             ]
         ),
         "gp-intro-page",
@@ -156,7 +187,7 @@ def _(live_switch, module_nav, mo, theme_toggle):
     sae_tooltip = (
         "SAE checkpoints found"
         if saes_ok
-        else "SAE checkpoints missing — one-click download in Module 4"
+        else "SAE checkpoints missing — one-click download in RQ1 → Intervene"
     )
     status_widget = mo.Html(
         system_status_html(
@@ -226,21 +257,32 @@ def _(mo, show_intro):
     from gp_notebook.probes import load_probe_cache
     from gp_notebook.runtime import get_hf_model, timed_call
     from gp_notebook.sae_fetch import download_saes, missing_sae_dirs
-    from gp_notebook.viz import (
-        activation_heatmap,
-        apply_plotly_theme,
-        attention_to_last_token_scores,
-        behavioral_figure,
-        circuit_svg,
-        faithfulness_anchor_figure,
-        group_ablation_figure,
-        lookup_sweep_intervention,
-        paper_figure_html,
-        probe_figure5_plot,
-        reading_bubbles_html,
-        token_reveal_html,
-        tug_of_war_html,
-    )
+    import importlib
+
+    import gp_notebook.theme_tokens as _theme_tokens
+    import gp_notebook.viz as _viz
+
+    # Marimo keeps sibling packages in sys.modules across edits; reload so new
+    # helpers (sae_pipeline_svg, serial_parallel_svgs, …) are always visible.
+    importlib.reload(_theme_tokens)
+    importlib.reload(_viz)
+
+    theme_color = _theme_tokens.theme_color
+    activation_heatmap = _viz.activation_heatmap
+    apply_plotly_theme = _viz.apply_plotly_theme
+    attention_to_last_token_scores = _viz.attention_to_last_token_scores
+    behavioral_figure = _viz.behavioral_figure
+    circuit_svg = _viz.circuit_svg
+    faithfulness_anchor_figure = _viz.faithfulness_anchor_figure
+    group_ablation_figure = _viz.group_ablation_figure
+    lookup_sweep_intervention = _viz.lookup_sweep_intervention
+    paper_figure_html = _viz.paper_figure_html
+    probe_figure5_plot = _viz.probe_figure5_plot
+    reading_bubbles_html = _viz.reading_bubbles_html
+    sae_pipeline_svg = _viz.sae_pipeline_svg
+    serial_parallel_svgs = _viz.serial_parallel_svgs
+    token_reveal_html = _viz.token_reveal_html
+    tug_of_war_html = _viz.tug_of_war_html
     from gp_notebook.widgets import GardenPathScrubber
 
     gp_df = load_gp_dataset()
@@ -289,10 +331,13 @@ def _(mo, show_intro):
         px,
         reading_bubbles_html,
         run_intervention_suite,
+        sae_pipeline_svg,
         saes_available,
         sample_gprc_items,
         score_sentence,
+        serial_parallel_svgs,
         spike_bar_html,
+        theme_color,
         timed_call,
         token_reveal_html,
         top_next_cache,
@@ -374,30 +419,18 @@ def _(mo, show_m0):
 
 
 @app.cell(hide_code=True)
-def _(load_parquet_cache, mo, np, show_m0, sparsity, spike_bar_html):
+def _(load_parquet_cache, mo, np, sae_pipeline_svg, show_m0, sparsity, spike_bar_html):
     mo.stop(not show_m0)
     rng = np.random.default_rng(0)
     raw = rng.normal(0, 1, 32)
     sparse_features = np.maximum(raw - sparsity.value, 0)
     active = int((sparse_features > 0).sum())
-    sae_svg = """
-    <svg width="640" height="120" xmlns="http://www.w3.org/2000/svg">
-      <text x="80" y="30" font-size="14" text-anchor="middle">x</text>
-      <text x="300" y="30" font-size="14" text-anchor="middle">f</text>
-      <text x="500" y="30" font-size="14" text-anchor="middle">x̂</text>
-      <rect x="60" y="50" width="80" height="40" fill="#d5dbdb" />
-      <polygon points="160,70 220,70 240,50 240,90 220,70" fill="#566573"/>
-      <rect x="260" y="50" width="80" height="40" fill="#f9e79f" />
-      <polygon points="360,70 420,70 440,50 440,90 420,70" fill="#566573"/>
-      <rect x="460" y="50" width="80" height="40" fill="#d5dbdb" />
-    </svg>
-    """
     _content = [
         mo.md("### SAE primer"),
         mo.md(
             r"$x$ (activation) $\rightarrow$ $f = \mathrm{ReLU}(W_e(x - b_d) + b_e)$ $\rightarrow$ $\hat{x} = W_d f + b_d$"
         ),
-        mo.Html(sae_svg),
+        mo.Html(sae_pipeline_svg()),
         sparsity,
         mo.md(
             f"Illustration with random numbers: **{active}** of 32 features stay active at "
@@ -516,6 +549,7 @@ def _(
     show_m1,
     structure,
     theme,
+    theme_color,
     token_reveal_html,
     verb_type,
 ):
@@ -539,9 +573,10 @@ def _(
     _content = [
         mo.md("## 1. Feel the garden path"),
         mo.md(
-            "The dataset (Sathe et al. 2024, same-length subset) varies only the verb: an "
-            "*ambiguous* verb licenses both readings, a *GP-forcing* verb makes the garden-path "
-            "reading correct, and a *non-GP* verb blocks it."
+            "The stimuli are an adaptation of Arehalli et al. (2022), forced to equal token "
+            "length so feature importance can be compared at fixed positions. Only the verb "
+            "changes: *ambiguous* licenses both readings, *GP-forcing* makes the garden-path "
+            "reading correct, and *non-GP* blocks it."
         ),
         mo.hstack([structure, verb_type], justify="start", gap=1.5, wrap=True),
     ]
@@ -567,9 +602,11 @@ def _(
             labels={"n_tokens": "Tokens seen", "value": "Probability", "variable": "Reading"},
             title="Commitment timeline: Pythia's preference as tokens arrive",
         )
-        prefix_fig.update_traces(selector=dict(name="p_gp"), line_color="#c0392b", name="p(GP)")
         prefix_fig.update_traces(
-            selector=dict(name="p_non_gp"), line_color="#2980b9", name="p(non-GP)"
+            selector=dict(name="p_gp"), line_color=theme_color("gp"), name="p(GP)"
+        )
+        prefix_fig.update_traces(
+            selector=dict(name="p_non_gp"), line_color=theme_color("non_gp"), name="p(non-GP)"
         )
         apply_plotly_theme(prefix_fig, theme)
         _content.extend([mo.md("### Model commitment timeline"), prefix_fig])
@@ -587,38 +624,173 @@ def _(
                     tok_strs,
                     attn_to_last,
                     label="Attention into the ambiguous noun",
-                    positive_color="#e67e22",
+                    positive_color=theme_color("highlight"),
                 ),
                 height="150px",
             ),
         ])
 
+    _content.append(
+        mo.callout(
+            mo.md(
+                "**Bridge to RQ1.** Behavior alone shows *that* Pythia prefers one continuation; "
+                "the next page asks *which features* cause that preference — syntactic detectors, "
+                "shallow heuristics, or both."
+            ),
+            kind="info",
+        )
+    )
     mo.vstack(_content)
     return
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 2 — Behavioral Lab (Fig 2)
+# RQ1 — Syntactic features or heuristics? (Figs 2–4, one page)
 # ═══════════════════════════════════════════════════════════════════
 
 @app.cell(hide_code=True)
 def _(module_nav):
-    show_m2 = module_nav.value == "m2"
-    return (show_m2,)
+    show_rq1 = module_nav.value == "rq1"
+    return (show_rq1,)
 
 
 @app.cell(hide_code=True)
-def _(behavioral_scored, mo, show_m2):
-    mo.stop(not show_m2)
+def _(mo, show_rq1):
+    mo.stop(not show_rq1)
+    rq1_panel = mo.ui.radio(
+        options={
+            "1 · Behavior (Fig 2)": "behavior",
+            "2 · Circuit (Fig 3)": "circuit",
+            "3 · Intervene (Fig 4)": "intervene",
+        },
+        value="1 · Behavior (Fig 2)",
+        label="RQ1 step",
+        inline=True,
+    )
+    return (rq1_panel,)
+
+
+@app.cell(hide_code=True)
+def _(behavioral_scored, mo, rq1_panel, show_rq1):
+    mo.stop(not show_rq1)
+    show_rq1_behavior = rq1_panel.value == "behavior"
+    show_rq1_circuit = rq1_panel.value == "circuit"
+    show_rq1_intervene = rq1_panel.value == "intervene"
     drill_df = None
     drill_table = None
-    if behavioral_scored is not None:
+    if show_rq1_behavior and behavioral_scored is not None:
         drill_df = behavioral_scored[behavioral_scored["input_type"] == "ambiguous"].copy()
         drill_table = mo.ui.table(
             drill_df[["item", "condition", "sentence", "p_gp", "p_non_gp", "diff"]],
             selection="single",
         )
-    return drill_df, drill_table
+    return drill_df, drill_table, show_rq1_behavior, show_rq1_circuit, show_rq1_intervene
+
+
+@app.cell(hide_code=True)
+def _(mo, show_rq1, show_rq1_circuit):
+    mo.stop(not (show_rq1 and show_rq1_circuit))
+    circuit_condition = mo.ui.dropdown(
+        options={"NP/Z": "NPZ", "NP/S": "NPS"},
+        value="NP/Z",
+        label="Circuit",
+    )
+    category_filter = mo.ui.dropdown(
+        options={
+            "All categories": "all",
+            "Syntactic only": "syntactic",
+            "Pro-GP only": "pro_gp",
+            "Anti-GP only": "anti_gp",
+        },
+        value="All categories",
+        label="Filter",
+    )
+    layer_slider = mo.ui.slider(0, 5, value=5, label="Show up to layer", show_value=True)
+    return category_filter, circuit_condition, layer_slider
+
+
+@app.cell(hide_code=True)
+def _(circuit_condition, enrich_feature_table, mo, show_rq1, show_rq1_circuit):
+    mo.stop(not (show_rq1 and show_rq1_circuit))
+    feat_catalog = enrich_feature_table(circuit_condition.value)
+    _syntactic_first = feat_catalog.sort_values(
+        ["is_syntactic", "layer"], ascending=[False, True]
+    )
+    feature_options = {
+        f"{row.Feature} — {row.Category}": row.Feature
+        for _, row in _syntactic_first.head(24).iterrows()
+    }
+    feature_pick = mo.ui.dropdown(
+        options=feature_options,
+        value=next(iter(feature_options)),
+        label="Inspect feature",
+    )
+    return feat_catalog, feature_options, feature_pick
+
+
+@app.cell(hide_code=True)
+def _(mo, saes_available, show_rq1, show_rq1_intervene):
+    mo.stop(not (show_rq1 and show_rq1_intervene))
+    sandbox_condition = mo.ui.dropdown(
+        options={"NP/Z": "NPZ", "NP/S": "NPS"},
+        value="NP/Z",
+        label="Structure",
+    )
+    subject_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Subject-detector amp")
+    object_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Object-detector amp")
+    clause_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Clause-end amp")
+    preset = mo.ui.radio(
+        options={
+            "Custom sliders": "custom",
+            "Paper syntactic flip": "syntactic",
+            "Baseline (no edit)": "baseline",
+            "Random control": "random",
+        },
+        value="Paper syntactic flip",
+        label="Preset",
+        inline=True,
+    )
+    live_run = mo.ui.run_button(label="Re-run this setting live on the model")
+    sae_download = (
+        mo.ui.run_button(label="Download SAE checkpoints (~2.3 GB)")
+        if not saes_available()
+        else None
+    )
+    return (
+        clause_slider,
+        live_run,
+        object_slider,
+        preset,
+        sae_download,
+        sandbox_condition,
+        subject_slider,
+    )
+
+
+@app.cell(hide_code=True)
+def _(mo, rq1_panel, show_rq1):
+    mo.stop(not show_rq1)
+    mo.vstack(
+        [
+            mo.md("## 2. RQ1 — Do LMs use syntactic features or shallow heuristics?"),
+            mo.callout(
+                mo.md(
+                    "**Gist.** Many high-importance features are interpretable and syntax-related "
+                    "(subjects, objects, clause ends), yet word-level detectors and uninterpretable "
+                    "features also move $m$. Causal clamps on the syntactic groups flip the preferred "
+                    "reading; random controls do not."
+                ),
+                kind="neutral",
+            ),
+            mo.md(
+                "Walk the paper's RQ1 arc on one page: measure garden-path preferences "
+                "(Fig 2), inspect the annotated circuit (Fig 3), then clamp features to flip "
+                "the reading (Fig 4)."
+            ),
+            rq1_panel,
+        ]
+    )
+    return
 
 
 @app.cell(hide_code=True)
@@ -634,17 +806,18 @@ def _(
     mo,
     paper_figure_html,
     px,
-    show_m2,
+    show_rq1,
+    show_rq1_behavior,
     theme,
     top_next_cache,
 ):
-    mo.stop(not show_m2)
+    mo.stop(not (show_rq1 and show_rq1_behavior))
     _content: list = [
-        mo.md("## 2. Behavioral lab — does Pythia get garden-pathed?"),
+        mo.md("### Behavior — does Pythia get garden-pathed?"),
         mo.md(
-            "Reproduction of the paper's **Figure 2**: mean m = p(GP) − p(non-GP) per structure "
-            "and verb type. MV/RR is shown but excluded from the mechanistic analyses because "
-            "Pythia barely garden-paths on it (paper §4.1)."
+            "Reproduction of the paper's **Figure 2**: mean $m = p(\\text{GP}) - p(\\text{non-GP})$ "
+            "per structure and verb type. MV/RR is shown but excluded from the mechanistic "
+            "analyses because Pythia barely garden-paths on it (paper §4.1)."
         ),
     ]
     if behavioral_summary is None or drill_table is None:
@@ -671,24 +844,21 @@ def _(
             title=f"Item {selected['item']} ({selected['condition']})",
         )
         apply_plotly_theme(token_bar, theme)
-        _content.extend([
-            behavior_fig,
-            mo.accordion(
-                {
-                    "Compare with the paper's original Figure 2": mo.Html(
-                        paper_figure_html(
-                            str(ASSETS_DIR / "paper_figures" / "fig2_behavioral.png"),
-                            "Paper Figure 2 (Pythia-70m): the pattern reproduced above — "
-                            "positive m for NP/Z and MV/RR, negative for NP/S; GP-forcing "
-                            "verbs amplify, non-GP verbs suppress.",
-                        )
+        _content.extend(
+            [
+                behavior_fig,
+                mo.Html(
+                    paper_figure_html(
+                        str(ASSETS_DIR / "paper_figures" / "fig2_behavioral.png"),
+                        "Paper Figure 2 (Pythia-70m): positive m for NP/Z and MV/RR, negative "
+                        "for NP/S; GP-forcing verbs amplify, non-GP verbs suppress.",
                     )
-                }
-            ),
-            mo.md("### Sentence drill-down"),
-            drill_table,
-            token_bar,
-        ])
+                ),
+                mo.md("### Sentence drill-down"),
+                drill_table,
+                token_bar,
+            ]
+        )
 
         if top_next_cache is not None:
             _tops = top_next_cache[
@@ -722,57 +892,6 @@ def _(
     return
 
 
-# ═══════════════════════════════════════════════════════════════════
-# MODULE 3 — Feature Microscope (Fig 3)
-# ═══════════════════════════════════════════════════════════════════
-
-@app.cell(hide_code=True)
-def _(module_nav):
-    show_m3 = module_nav.value == "m3"
-    return (show_m3,)
-
-
-@app.cell(hide_code=True)
-def _(mo, show_m3):
-    mo.stop(not show_m3)
-    circuit_condition = mo.ui.dropdown(
-        options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NP/Z",
-        label="Circuit",
-    )
-    category_filter = mo.ui.dropdown(
-        options={
-            "All categories": "all",
-            "Syntactic only": "syntactic",
-            "Pro-GP only": "pro_gp",
-            "Anti-GP only": "anti_gp",
-        },
-        value="All categories",
-        label="Filter",
-    )
-    layer_slider = mo.ui.slider(0, 5, value=5, label="Show up to layer", show_value=True)
-    return category_filter, circuit_condition, layer_slider
-
-
-@app.cell(hide_code=True)
-def _(circuit_condition, enrich_feature_table, mo, show_m3):
-    mo.stop(not show_m3)
-    feat_catalog = enrich_feature_table(circuit_condition.value)
-    _syntactic_first = feat_catalog.sort_values(
-        ["is_syntactic", "layer"], ascending=[False, True]
-    )
-    feature_options = {
-        f"{row.Feature} — {row.Category}": row.Feature
-        for _, row in _syntactic_first.head(24).iterrows()
-    }
-    feature_pick = mo.ui.dropdown(
-        options=feature_options,
-        value=next(iter(feature_options)),
-        label="Inspect feature",
-    )
-    return feat_catalog, feature_options, feature_pick
-
-
 @app.cell(hide_code=True)
 def _(
     ASSETS_DIR,
@@ -792,11 +911,12 @@ def _(
     load_parquet_cache,
     mo,
     paper_figure_html,
-    show_m3,
+    show_rq1,
+    show_rq1_circuit,
     spike_bar_html,
     theme,
 ):
-    mo.stop(not show_m3)
+    mo.stop(not (show_rq1 and show_rq1_circuit))
     counts = category_counts(circuit_condition.value)
     if category_filter.value == "syntactic":
         filtered_feats = feat_catalog[feat_catalog["is_syntactic"]]
@@ -818,9 +938,9 @@ def _(
             [
                 ablation_fig,
                 mo.md(
-                    "Word-detector heuristics move m at least as much as the genuinely syntactic "
-                    "detectors — direct evidence for the paper's claim that the mechanism mixes "
-                    "**real syntax with shallow heuristics**."
+                    "Word-detector heuristics move $m$ at least as much as the genuinely syntactic "
+                    "detectors — direct evidence that the mechanism mixes **real syntax with "
+                    "shallow heuristics**."
                 ),
             ]
         )
@@ -863,75 +983,30 @@ def _(
                 )
 
     _content = [
-        mo.md("## 3. Feature microscope — what is inside the circuit?"),
+        mo.md("### Circuit — what is inside the feature set?"),
         mo.md(
-            "The paper finds the circuit with AtP-IG (ÎE > 0.1), then hand-annotates every "
-            "feature by inspecting its activating contexts. The catalogue below is the authors' "
-            "own annotation table; the ablation chart then *verifies causally* what each family "
-            "of features contributes. Red = pro-GP, blue = anti-GP."
+            "AtP-IG keeps features with $\\hat{\\mathrm{IE}} > 0.1$; the authors then hand-annotate "
+            "each one. Lower layers are mostly word detectors; upper layers encode subjects, "
+            "objects, and clause boundaries. Red = pro-GP, blue = anti-GP."
         ),
         mo.hstack([circuit_condition, category_filter, layer_slider, feature_pick]),
         mo.Html(circuit_svg(counts)),
         ablation_panel,
-        mo.accordion(
-            {
-                "The paper's own circuit sketch (Figure 3)": mo.Html(
-                    paper_figure_html(
-                        str(ASSETS_DIR / "paper_figures" / "fig3_circuit.png"),
-                        "Paper Figure 3: the NP/Z circuit for “After the politician signed the "
-                        "bill …”. Numbers are feature counts per node; red nodes push the GP "
-                        "reading, blue nodes the non-GP reading.",
-                    )
-                )
-            }
+        mo.Html(
+            paper_figure_html(
+                str(ASSETS_DIR / "paper_figures" / "fig3_circuit.png"),
+                "Paper Figure 3: NP/Z circuit for “After the politician signed the bill …”. "
+                "Numbers are feature counts; red nodes push GP, blue push non-GP.",
+            )
         ),
         mo.Html(feature_gallery_html(gallery_feats)),
-        mo.accordion({f"Layer {layer}": text for layer, text in narrative if layer <= layer_slider.value}),
+        mo.accordion(
+            {f"Layer {layer}": text for layer, text in narrative if layer <= layer_slider.value}
+        ),
         detail_html,
     ]
     mo.vstack(_content)
     return
-
-
-# ═══════════════════════════════════════════════════════════════════
-# MODULE 4 — Intervention Sandbox (Fig 4) — CENTERPIECE
-# ═══════════════════════════════════════════════════════════════════
-
-@app.cell(hide_code=True)
-def _(module_nav):
-    show_m4 = module_nav.value == "m4"
-    return (show_m4,)
-
-
-@app.cell(hide_code=True)
-def _(mo, saes_available, show_m4):
-    mo.stop(not show_m4)
-    sandbox_condition = mo.ui.dropdown(
-        options={"NP/Z": "NPZ", "NP/S": "NPS"},
-        value="NP/Z",
-        label="Structure",
-    )
-    subject_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Subject-detector amp")
-    object_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Object-detector amp")
-    clause_slider = mo.ui.slider(0.0, 3.0, value=2.0, step=0.25, label="Clause-end amp")
-    preset = mo.ui.radio(
-        options={
-            "Custom sliders": "custom",
-            "Paper syntactic flip": "syntactic",
-            "Baseline (no edit)": "baseline",
-            "Random control": "random",
-        },
-        value="Paper syntactic flip",
-        label="Preset",
-        inline=True,
-    )
-    live_run = mo.ui.run_button(label="Re-run this setting live on the model")
-    sae_download = (
-        mo.ui.run_button(label="Download SAE checkpoints (~2.3 GB)")
-        if not saes_available()
-        else None
-    )
-    return clause_slider, live_run, object_slider, preset, sae_download, sandbox_condition, subject_slider
 
 
 @app.cell(hide_code=True)
@@ -946,10 +1021,8 @@ def _(
     interventions_df,
     live_mode_available,
     live_run,
-    live_switch,
     load_parquet_cache,
     lookup_sweep_intervention,
-    missing_sae_dirs,
     mo,
     object_slider,
     paper_figure_html,
@@ -959,17 +1032,18 @@ def _(
     sae_download,
     saes_available,
     sandbox_condition,
-    show_m4,
+    show_rq1,
+    show_rq1_intervene,
     subject_slider,
     theme,
+    theme_color,
     timed_call,
     tug_of_war_html,
 ):
-    mo.stop(not show_m4)
+    mo.stop(not (show_rq1 and show_rq1_intervene))
 
     cond = sandbox_condition.value
 
-    # One-click SAE fetch so live mode works on a fresh (e.g. molab) machine.
     _sae_note = None
     if sae_download is not None and sae_download.value and not saes_available():
         with mo.status.progress_bar(
@@ -1001,7 +1075,7 @@ def _(
         _relevant_sliders = [subject_slider, clause_slider]
         sub_amp, obj_amp, cl_amp = subject_slider.value, 0.0, clause_slider.value
         _protocol_note = (
-            "NP/Z protocol (paper §4.2): **upweight subject detectors** at the ambiguous noun, "
+            "NP/Z protocol (paper §4.3): **upweight subject detectors** at the ambiguous noun, "
             "**amplify clause-end detectors** at the verb (and zero them afterwards), and always "
             "**clamp object detectors to 0** — pushing the net toward the non-GP reading."
         )
@@ -1011,9 +1085,9 @@ def _(
         _relevant_sliders = [object_slider]
         sub_amp, obj_amp, cl_amp = 0.0, object_slider.value, 0.0
         _protocol_note = (
-            "NP/S protocol (paper §4.2): **upweight object and end-of-sentence detectors** and "
-            "always **clamp subject and CP-verb detectors to 0** — pushing the net toward the GP "
-            "reading. (The direction is opposite to NP/Z because NP/S sentences start non-GP.)"
+            "NP/S protocol (paper §4.3): **upweight object detectors** and always **clamp "
+            "subject and CP-verb detectors to 0** — pushing the net toward the GP reading "
+            "(NP/S starts non-GP, so the flip direction is opposite to NP/Z)."
         )
         if preset.value == "syntactic":
             obj_amp = 2.0
@@ -1113,7 +1187,7 @@ def _(
                     x=[_x_now],
                     y=[result["mean_diff"]],
                     mode="markers",
-                    marker=dict(size=14, color="#f39c12", symbol="diamond"),
+                    marker=dict(size=14, color=theme_color("highlight"), symbol="diamond"),
                     name="current setting",
                 )
             apply_plotly_theme(sweep_fig, theme)
@@ -1134,7 +1208,10 @@ def _(
     feat_panels: list = []
     if _tok_act is not None and not _tok_act.empty:
         _sent_data = _tok_act[_tok_act["sentence"] == _tok_act["sentence"].iloc[0]]
-        for _side, _color in [("pro_gp", "#c0392b"), ("anti_gp", "#2980b9")]:
+        for _side, _color in [
+            ("pro_gp", theme_color("gp")),
+            ("anti_gp", theme_color("non_gp")),
+        ]:
             _side_data = _sent_data[_sent_data["reading_side"] == _side]
             if _side_data.empty:
                 continue
@@ -1159,12 +1236,12 @@ def _(
     )
 
     _content = [
-        mo.md("## 4. Intervention sandbox — **flip the model's reading**"),
+        mo.md("### Intervene — flip the model's reading"),
         mo.md(
-            "The paper's headline causal test (Figure 4): clamp the annotated syntactic features "
-            "and the preferred reading flips; clamp the same number of *random* features and "
-            "nothing happens. The sliders below move through a grid of **real intervention runs** "
-            "(one full model run per grid point, all 24 sentences each)."
+            "The paper's causal test (Figure 4): clamp annotated syntactic features and the "
+            "preferred reading flips; clamp the same number of *random* features and nothing "
+            "happens. Sliders move through a grid of **real intervention runs** (all 24 "
+            "sentences per grid point)."
         ),
         mo.md(_protocol_note),
         mo.md(f"**Example sentence:** _{example}_"),
@@ -1178,17 +1255,12 @@ def _(
         _content.extend(
             [
                 paper_chart,
-                mo.accordion(
-                    {
-                        "Compare with the paper's original Figure 4": mo.Html(
-                            paper_figure_html(
-                                str(ASSETS_DIR / "paper_figures" / "fig4_causal.png"),
-                                "Paper Figure 4 (Pythia-70m). Same qualitative result: the "
-                                "syntactic intervention flips the sign of m for both structures; "
-                                "the random-feature control does not.",
-                            )
-                        )
-                    }
+                mo.Html(
+                    paper_figure_html(
+                        str(ASSETS_DIR / "paper_figures" / "fig4_causal.png"),
+                        "Paper Figure 4 (Pythia-70m): syntactic intervention flips the sign of m; "
+                        "the random-feature control does not.",
+                    )
                 ),
             ]
         )
@@ -1239,36 +1311,36 @@ def _(
     probe_cache,
     probe_figure5_plot,
     rq2_condition,
+    serial_parallel_svgs,
     show_m5,
     theme,
 ):
     mo.stop(not show_m5)
     _tok_act = load_parquet_cache(f"token_activations_{rq2_condition.value.lower()}.parquet")
-
-    serial_svg = """<svg width="300" height="140"><text x="8" y="16" font-size="12" fill="currentColor">Serial parser (hypothesis)</text>
-    <circle cx="80" cy="70" r="10" fill="#c0392b"/><text x="50" y="100" font-size="10" fill="currentColor">one reading</text></svg>"""
-    parallel_svg = """<svg width="300" height="140"><text x="8" y="16" font-size="12" fill="currentColor">Parallel (what the paper finds)</text>
-    <circle cx="70" cy="60" r="8" fill="#c0392b"/><circle cx="70" cy="90" r="8" fill="#2980b9"/>
-    <text x="100" y="78" font-size="10" fill="currentColor">both readings active</text></svg>"""
+    serial_svg, parallel_svg = serial_parallel_svgs()
 
     _content = [
-        mo.md("## 5. One or many readings? (RQ2)"),
+        mo.md("## 3. One or many readings? (RQ2)"),
+        mo.callout(
+            mo.md(
+                "**Gist.** On ambiguous prefixes, pro-GP and anti-GP syntactic features both "
+                "fire (mean activations 0.27–0.41; >50% of each group active). Structural probes "
+                "agree: LEFT-ARC and GEN both keep non-trivial probability — parallel maintenance, "
+                "not a single committed parse."
+            ),
+            kind="neutral",
+        ),
         mo.md(
-            "Does the model commit to a single parse, or hedge? The paper measures the annotated "
-            "features of *both* readings on ambiguous inputs: mean activations stay in the "
-            "0.27–0.41 band for every feature group, and **more than 50% of each group's features "
-            "stay active** — the model maintains both readings in parallel."
+            "Does the model commit to one reading, or keep both? The paper checks annotated "
+            "feature activations on ambiguous inputs and reads parse distributions out of "
+            "hidden states with MLP action probes."
         ),
         rq2_condition,
     ]
 
     if _tok_act is not None and not _tok_act.empty:
         activation_fig = apply_plotly_theme(activation_heatmap(_tok_act), theme)
-        _content.extend(
-            [
-                activation_fig,
-            ]
-        )
+        _content.append(activation_fig)
     else:
         _content.append(
             mo.callout(
@@ -1282,23 +1354,17 @@ def _(
         [
             mo.md("### The structural-probe view"),
             mo.md(
-                "A structural probe reads the *parse* out of hidden states: LEFT-ARC = the "
-                "garden-path dependency, GEN = the non-GP alternative. Both actions keep "
-                "non-trivial probability through the middle layers — the probe agrees that "
-                "neither reading is discarded (except in the final layer, where probe quality "
-                "collapses; paper §5)."
+                "LEFT-ARC = garden-path dependency; GEN = non-GP alternative. Both stay "
+                "non-trivial through the middle layers (final-layer probe quality collapses; "
+                "paper §5)."
             ),
             probe_fig,
-            mo.accordion(
-                {
-                    "The paper's original Figure 5": mo.Html(
-                        paper_figure_html(
-                            str(ASSETS_DIR / "paper_figures" / "fig5_probe.png"),
-                            "Paper Figure 5: probe action probabilities at the ambiguous noun, "
-                            "averaged over items, per layer of Pythia-70m.",
-                        )
-                    )
-                }
+            mo.Html(
+                paper_figure_html(
+                    str(ASSETS_DIR / "paper_figures" / "fig5_probe.png"),
+                    "Paper Figure 5: probe action probabilities at the ambiguous noun, "
+                    "averaged over items, per layer of Pythia-70m.",
+                )
             ),
             mo.hstack([mo.Html(serial_svg), mo.Html(parallel_svg)]),
         ]
@@ -1363,35 +1429,48 @@ def _(
     mo,
     sample_gprc_items,
     show_m6,
+    theme_color,
 ):
     mo.stop(not show_m6)
     qa_table = mo.ui.table(gprc_table_df())
     samples = sample_gprc_items(gprc_condition.value, n=3)
     iou = CIRCUIT_IOU.get(gprc_condition.value, 0.0)
+    gp_soft = theme_color("gp_soft")
+    non_gp_soft = theme_color("non_gp_soft")
+    gp = theme_color("gp")
+    ink = theme_color("ink")
     overlap_svg = f"""
-    <svg width="520" height="160" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="150" cy="80" r="60" fill="#fadbd8" opacity="0.8"/>
-      <circle cx="280" cy="80" r="60" fill="#d6eaf8" opacity="0.8"/>
-      <text x="85" y="85" font-size="12" fill="#1c2833">GP circuit C₁</text>
-      <text x="295" y="85" font-size="12" fill="#1c2833">GPRC C₂</text>
-      <text x="200" y="85" font-size="11" fill="#922b21">IoU ≈ {iou:.1%}</text>
+    <svg width="520" height="160" xmlns="http://www.w3.org/2000/svg" role="img"
+         aria-label="Near-zero overlap between parse and GPRC circuits">
+      <circle cx="150" cy="80" r="60" fill="{gp_soft}" opacity="0.9"/>
+      <circle cx="280" cy="80" r="60" fill="{non_gp_soft}" opacity="0.9"/>
+      <text x="85" y="85" font-size="12" fill="{ink}">GP circuit C₁</text>
+      <text x="295" y="85" font-size="12" fill="{ink}">GPRC C₂</text>
+      <text x="200" y="85" font-size="11" fill="{gp}" font-weight="700">IoU ≈ {iou:.1%}</text>
     </svg>
     """
     mo.vstack([
-        mo.md("## 6. Repair vs reanalysis? (RQ3)"),
+        mo.md("## 4. Repair vs reanalysis? (RQ3)"),
         mo.callout(
             mo.md(
-                "**Model switch:** this module is about **Gemma-2-2b**. Pythia-70m answers "
+                "**Model switch:** this section is about **Gemma-2-2b**. Pythia-70m answers "
                 "garden-path comprehension questions at chance (50%, Table 3), so the paper can "
                 "only study *question answering about* garden paths in the larger model."
             ),
             kind="info",
         ),
+        mo.callout(
+            mo.md(
+                "**Gist.** After disambiguation, Gemma's QA circuit shares almost no features "
+                "with the parse circuit (IoU ≤ 0.2%) and leans on shallow yes/no heuristics — "
+                "evidence for **neither** human-style repair nor reanalysis."
+            ),
+            kind="neutral",
+        ),
         mo.md(
-            "After the garden path is disambiguated, does the model **repair** its "
-            "representation (like humans do) or **reanalyze** from scratch? The paper's test: "
-            "find the circuit Gemma uses to *answer questions* about garden-path sentences "
-            "(GPRC), and check how much it overlaps the circuit that *parses* them."
+            "Operationally: *repair* would reuse reading-specific syntactic features after the "
+            "disambiguating token; *reanalysis* would rebuild from reading-agnostic features. "
+            "The paper compares the GPRC answering circuit to the initial parse circuit."
         ),
         qa_table,
         mo.Html(overlap_svg),
@@ -1404,10 +1483,8 @@ def _(
         ),
         mo.callout(
             mo.md(
-                "The paper's evidence points to **neither** repair nor reanalysis: the QA "
-                "circuit shares almost no features with the parse circuit (IoU ≤ 0.2%) and "
-                "instead leans on shallow yes/no features (\u201cCertainly\u201d, \u201cOf "
-                "course\u201d). Comprehension behaves like a separate, heuristic pathway."
+                "Comprehension here behaves like a separate, heuristic pathway — not a "
+                "continuation of the syntactic circuit that set the preferred reading."
             ),
             kind="warn",
         ),
@@ -1570,7 +1647,7 @@ def _(
                 mo.callout(
                     mo.md(
                         "The causal flip needs **Live mode** (sidebar) and the SAE checkpoints "
-                        "(one-click download in Module 4)."
+                        "(one-click download under RQ1 → Intervene)."
                     ),
                     kind="warn",
                 )
@@ -1596,9 +1673,16 @@ def _(
     )
 
     _content = [
-        mo.md("## 7. Build your own garden-path sentence"),
+        mo.md("## 5. Build your own garden-path sentence"),
+        mo.callout(
+            mo.md(
+                "**Extension.** Score novel prefixes with $m = p(\\text{GP}) - p(\\text{non-GP})$ "
+                "and optionally clamp the same syntactic feature groups used in RQ1 — a direct "
+                "check that the paper's causal story transfers beyond the curated set."
+            ),
+            kind="neutral",
+        ),
         mo.md(
-            "**Extension:** apply the paper's metric and causal tools to novel input. "
             "Curated examples work instantly from caches; custom text runs the model live. "
             + _live_note
         ),
@@ -1641,40 +1725,50 @@ def _(
 ):
     mo.stop(not show_m8)
     _content: list = [
-        mo.md("## 8. Outro"),
-    ]
-
-    _content.extend(
-        [
-            mo.md("### How much of the behavior do these circuits capture?"),
-            apply_plotly_theme(faithfulness_anchor_figure(), theme),
+        mo.md("## 6. Outro"),
+        mo.callout(
             mo.md(
-                """
+                "**Gist, restated.** Sparse feature circuits show that incremental garden-path "
+                "preferences in Pythia mix syntax with heuristics and keep both parses alive; "
+                "Gemma's follow-up answers barely reuse that parse circuit."
+            ),
+            kind="neutral",
+        ),
+        mo.md("### How much of the behavior do these circuits capture?"),
+        apply_plotly_theme(faithfulness_anchor_figure(), theme),
+        mo.md(
+            """
+Faithfulness far from 1.0 (e.g. 3.48 for NP/Z, 0.20 for NP/S) means these circuits are
+*influential* but incomplete — negative-effect features and non-linear interactions remain
+outside the annotated set (paper Appendix C). That caveat does not erase the causal evidence
+for the features we *do* have.
+"""
+        ),
+        mo.md(
+            """
 ### Closing takeaways
 
-1. **RQ1 (Pythia-70m):** Ablating or clamping the annotated features reliably moves — and can
-   flip — the model's preferred reading, while random-feature controls do nothing. The circuits
-   mix genuine syntactic detectors with shallow lexical heuristics, and their limited
-   faithfulness means they are part of the mechanism, not all of it.
+1. **RQ1 (Pythia-70m):** Clamping annotated syntactic features flips the preferred reading;
+   random controls do not. Circuits mix genuine syntactic detectors with shallow lexical
+   heuristics, and limited faithfulness means they are part of the mechanism, not all of it.
 2. **RQ2 (Pythia-70m):** Features for *both* readings stay active on ambiguous input (mean
    activations 0.27–0.41, over half of each group firing) — parallel maintenance rather than a
    single committed parse.
 3. **RQ3 (Gemma-2-2b):** Question-answering circuits share almost no features with parsing
-   circuits (IoU ≤ 0.2%) and lean on yes/no heuristics — evidence for neither human-style
-   repair nor reanalysis.
+   circuits (IoU ≤ 0.2%) and lean on yes/no heuristics — neither human-style repair nor
+   reanalysis.
 """
-            ),
-            mo.md(
-                """
+        ),
+        mo.md(
+            """
 ### Where this could go next
 
-- **Evaluating Recurrent Models:** The same pipeline can be applied to recurrent models like xLSTMs ([Beck at al. 2025](https://www.alphaxiv.org/abs/2405.04517)) that have shown superior performance comapred to both Transformers and State Space Models across many benchmarks, to study the mechanisms of incremental parsing in these models, and how model compression techniques like pruning and quantisation affect the incremental performance (for Edge AI applications).
-- **Extending Evaluation Pipeline:** A standardised incrementality evaluation pipeline (model in, scores out) can be created to evaluate the incremental performance of other models, which could as well include the diachronic metrics of [Baumann and Schlangen, 2011](https://aclanthology.org/2011.dnd-2.10/) and "Triangular Structures" of [Madureira et al. 2024](https://www.alphaxiv.org/abs/2402.13113). The correlation between these metrics then be studied that in turn could shed light on the possibility of using the diachronic metrics over mechanistic explanations due to simplicity and efficiency.
+- **Evaluating Recurrent Models:** The same pipeline can be applied to recurrent models like xLSTMs ([Beck et al. 2025](https://www.alphaxiv.org/abs/2405.04517)) that have shown superior performance compared to both Transformers and State Space Models across many benchmarks, to study the mechanisms of incremental parsing in these models, and how model compression techniques like pruning and quantisation affect the incremental performance (for Edge AI applications).
+- **Extending Evaluation Pipeline:** A standardised incrementality evaluation pipeline (model in, scores out) can be created to evaluate the incremental performance of other models, which could as well include the diachronic metrics of [Baumann and Schlangen, 2011](https://aclanthology.org/2011.dnd-2.10/) and "Triangular Structures" of [Madureira et al. 2024](https://www.alphaxiv.org/abs/2402.13113). The correlation between these metrics can then be studied, which in turn could shed light on the possibility of using the diachronic metrics over mechanistic explanations due to simplicity and efficiency.
 - **Guaranteed Circuit Validity:** Current circuit discovery methods are known to not generalise out of distribution robustly. Further work can follow "Certified Circuits" ([Anani et al. 2026](https://www.alphaxiv.org/abs/2602.22968)) to ensure provably stable circuit discovery.
 """
-            )
-        ]
-    )
+        ),
+    ]
     mo.vstack(_content)
     return
 

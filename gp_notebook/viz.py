@@ -1,4 +1,4 @@
-"""Plotly and HTML visualization helpers for the marimo notebook."""
+"""Plotly and HTML visualization helpers for the garden-path marimo notebook."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from gp_notebook.theme_tokens import GP_THEME, theme_color
 
 _PAPER_LINKS_HTML = """
 <div class="gp-hero__links">
@@ -70,7 +71,7 @@ def provenance_row_html(badges: list[tuple[str, str]], note: str = "") -> str:
     return f'<div class="gp-badge-row">{pills}{note_html}</div>'
 
 
-def paper_figure_html(png_path: str, caption: str, *, max_width: str = "860px") -> str:
+def paper_figure_html(png_path: str, caption: str, *, max_width: str = "920px") -> str:
     """Embed one of the paper's original figures (from the arXiv source) with a caption."""
     import base64
     from pathlib import Path
@@ -79,8 +80,8 @@ def paper_figure_html(png_path: str, caption: str, *, max_width: str = "860px") 
     return f"""
 <figure class="gp-paper-figure" style="max-width:{max_width};margin:0.75rem 0;">
   <img src="data:image/png;base64,{data}" alt="{html.escape(caption, quote=True)}"
-       style="width:100%;height:auto;border-radius:10px;border:1px solid var(--gp-status-border,#e2e8f0);background:#fff;" />
-  <figcaption style="font-size:0.82rem;color:var(--gp-status-muted,#64748b);margin-top:0.35rem;">
+       style="width:100%;height:auto;border-radius:10px;border:1px solid var(--gp-border,var(--gp-status-border,#e2e8f0));background:#fff;" />
+  <figcaption style="font-size:0.82rem;color:var(--gp-muted,var(--gp-status-muted,#64748b));margin-top:0.35rem;font-family:var(--gp-font-body);">
     {caption}
   </figcaption>
 </figure>
@@ -93,8 +94,12 @@ def plotly_template(theme: str) -> str:
 
 
 def apply_plotly_theme(fig: go.Figure, theme: str) -> go.Figure:
-    """Apply the light or dark Plotly template to a figure."""
-    fig.update_layout(template=plotly_template(theme))
+    """Apply the light or dark Plotly template and notebook fonts to a figure."""
+    fig.update_layout(
+        template=plotly_template(theme),
+        font=dict(family=GP_THEME["font_body"].replace('"', "")),
+        title_font=dict(family=GP_THEME["font_display"].replace('"', "")),
+    )
     return fig
 
 
@@ -114,6 +119,11 @@ def notebook_header_compact_html() -> str:
 
 def notebook_hero_html() -> str:
     """Return the full intro hero with badge, subtitle, and garden-path fork SVG."""
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    highlight = theme_color("highlight")
+    highlight_soft = theme_color("highlight_soft")
+    muted = theme_color("muted")
     return f"""
 <div class="gp-hero">
   <div class="gp-hero__grid">
@@ -131,17 +141,85 @@ def notebook_hero_html() -> str:
       <svg viewBox="0 0 280 140" width="100%" role="img"
            aria-label="Two syntactic readings diverge at an ambiguous noun">
         <text x="140" y="14" text-anchor="middle" font-size="11" class="gp-hero__svg-muted">Ambiguous noun</text>
-        <line x1="140" y1="30" x2="140" y2="55" stroke="#94a3b8" stroke-width="2"/>
-        <circle cx="140" cy="28" r="8" fill="#fbbf24" stroke="#f59e0b" stroke-width="2"/>
-        <path d="M140 55 L60 120" stroke="#c0392b" stroke-width="2.5" fill="none"/>
-        <path d="M140 55 L220 120" stroke="#2980b9" stroke-width="2.5" fill="none"/>
-        <text x="28" y="132" font-size="11" fill="#c0392b">GP: object → comma</text>
-        <text x="158" y="132" font-size="11" fill="#2980b9">non-GP: subject → was</text>
+        <line x1="140" y1="30" x2="140" y2="55" stroke="{muted}" stroke-width="2"/>
+        <circle cx="140" cy="28" r="8" fill="{highlight_soft}" stroke="{highlight}" stroke-width="2"/>
+        <path d="M140 55 L60 120" stroke="{gp}" stroke-width="2.5" fill="none"/>
+        <path d="M140 55 L220 120" stroke="{non_gp}" stroke-width="2.5" fill="none"/>
+        <text x="28" y="132" font-size="11" fill="{gp}">GP: object → comma</text>
+        <text x="158" y="132" font-size="11" fill="{non_gp}">non-GP: subject → was</text>
       </svg>
     </div>
   </div>
 </div>
 """
+
+
+def sae_pipeline_svg() -> str:
+    """Render a polished SAE encode/decode schematic using design tokens."""
+    accent = theme_color("accent")
+    accent_soft = theme_color("accent_soft")
+    surface = theme_color("surface_card")
+    ink = theme_color("ink")
+    muted = theme_color("muted")
+    highlight = theme_color("highlight_soft")
+    border = theme_color("border")
+    return f"""
+<svg width="640" height="130" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Sparse autoencoder maps activation x to sparse features f then reconstructs x-hat">
+  <rect x="40" y="42" width="100" height="48" rx="10" fill="{surface}" stroke="{border}" stroke-width="1.5"/>
+  <text x="90" y="32" font-size="13" text-anchor="middle" fill="{muted}">activation</text>
+  <text x="90" y="72" font-size="18" text-anchor="middle" fill="{ink}" font-weight="700">x</text>
+  <path d="M150 66 L210 66" stroke="{accent}" stroke-width="2.5" marker-end="url(#gpArrow)"/>
+  <text x="180" y="56" font-size="11" text-anchor="middle" fill="{muted}">encode</text>
+  <rect x="220" y="42" width="120" height="48" rx="10" fill="{highlight}" stroke="{theme_color('highlight')}" stroke-width="1.5"/>
+  <text x="280" y="32" font-size="13" text-anchor="middle" fill="{muted}">sparse features</text>
+  <text x="280" y="72" font-size="18" text-anchor="middle" fill="{ink}" font-weight="700">f</text>
+  <path d="M350 66 L410 66" stroke="{accent}" stroke-width="2.5" marker-end="url(#gpArrow)"/>
+  <text x="380" y="56" font-size="11" text-anchor="middle" fill="{muted}">decode</text>
+  <rect x="420" y="42" width="100" height="48" rx="10" fill="{accent_soft}" stroke="{accent}" stroke-width="1.5"/>
+  <text x="470" y="32" font-size="13" text-anchor="middle" fill="{muted}">reconstruction</text>
+  <text x="470" y="72" font-size="18" text-anchor="middle" fill="{ink}" font-weight="700">x̂</text>
+  <defs>
+    <marker id="gpArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="{accent}"/>
+    </marker>
+  </defs>
+</svg>
+"""
+
+
+def serial_parallel_svgs() -> tuple[str, str]:
+    """Return schematic SVGs contrasting serial vs parallel parse maintenance."""
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    ink = theme_color("ink")
+    muted = theme_color("muted")
+    border = theme_color("border")
+    surface = theme_color("surface_card")
+    serial = f"""
+<svg width="300" height="150" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Serial parser hypothesis: only one reading active">
+  <rect width="300" height="150" rx="12" fill="{surface}" stroke="{border}"/>
+  <text x="16" y="28" font-size="13" fill="{ink}" font-weight="700">Serial (hypothesis)</text>
+  <text x="16" y="48" font-size="11" fill="{muted}">Only one reading stays active</text>
+  <circle cx="90" cy="95" r="18" fill="{gp}"/>
+  <text x="90" y="130" font-size="11" text-anchor="middle" fill="{muted}">one reading</text>
+  <circle cx="200" cy="95" r="18" fill="none" stroke="{non_gp}" stroke-width="2" stroke-dasharray="4 3" opacity="0.45"/>
+  <text x="200" y="130" font-size="11" text-anchor="middle" fill="{muted}" opacity="0.55">discarded</text>
+</svg>
+"""
+    parallel = f"""
+<svg width="300" height="150" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Parallel finding: both readings remain active">
+  <rect width="300" height="150" rx="12" fill="{surface}" stroke="{border}"/>
+  <text x="16" y="28" font-size="13" fill="{ink}" font-weight="700">Parallel (paper finding)</text>
+  <text x="16" y="48" font-size="11" fill="{muted}">Both feature camps fire together</text>
+  <circle cx="110" cy="88" r="16" fill="{gp}"/>
+  <circle cx="160" cy="108" r="16" fill="{non_gp}"/>
+  <text x="135" y="140" font-size="11" text-anchor="middle" fill="{muted}">both readings active</text>
+</svg>
+"""
+    return serial, parallel
 
 
 def attention_to_last_token_scores(layer_attn: np.ndarray, n_tokens: int) -> list[float]:
@@ -174,8 +252,13 @@ def behavioral_figure(summary: pd.DataFrame) -> go.Figure:
             "input_type": "Input type",
         },
         title="Garden-path continuation preferences (Pythia-70m)",
+        color_discrete_sequence=[
+            theme_color("accent"),
+            theme_color("gp"),
+            theme_color("non_gp"),
+        ],
     )
-    fig.add_hline(y=0, line_dash="dot", line_color="gray")
+    fig.add_hline(y=0, line_dash="dot", line_color=theme_color("neutral"))
     return fig
 
 
@@ -185,16 +268,21 @@ def tug_of_war_html(p_gp: float, p_non_gp: float, *, animate: bool = True) -> st
     gp_share = p_gp / total
     marker_left = int(gp_share * 100)
     transition = "transition:left 0.35s ease, background 0.35s ease;" if animate else ""
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    gp_soft = theme_color("gp_soft")
+    non_gp_soft = theme_color("non_gp_soft")
+    ink = theme_color("ink")
     return f"""
-    <div style="font-family:system-ui,sans-serif;max-width:720px;">
+    <div style="font-family:var(--gp-font-body);max-width:720px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <span style="color:#c0392b;font-weight:600;">GP reading</span>
-        <span style="color:#2980b9;font-weight:600;">non-GP reading</span>
+        <span style="color:{gp};font-weight:600;">GP reading</span>
+        <span style="color:{non_gp};font-weight:600;">non-GP reading</span>
       </div>
       <div style="position:relative;height:28px;border-radius:14px;overflow:hidden;
-                  background:linear-gradient(90deg,#f5b7b1 {marker_left}%,#aed6f1 {marker_left}%);">
+                  background:linear-gradient(90deg,{gp_soft} {marker_left}%,{non_gp_soft} {marker_left}%);">
         <div style="position:absolute;left:calc({marker_left}% - 10px);top:-4px;width:20px;
-                    height:36px;background:#2c3e50;border-radius:4px;{transition}"></div>
+                    height:36px;background:{ink};border-radius:4px;{transition}"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:14px;">
         <span>p(GP) = {p_gp:.4f}</span>
@@ -262,34 +350,48 @@ def token_reveal_html(
     """Render tokens with optional progressive reveal and highlight."""
     token_list = list(tokens)
     shown = token_list if reveal_count is None else token_list[:reveal_count]
+    highlight = theme_color("highlight")
+    highlight_soft = theme_color("highlight_soft")
+    ink = theme_color("ink")
+    surface = theme_color("surface")
     parts: list[str] = []
     for idx, token in enumerate(shown):
         safe = html.escape(token)
-        style = "padding:4px 6px;margin:2px;border-radius:6px;display:inline-block;color:#1c2833;"
+        style = (
+            f"padding:4px 6px;margin:2px;border-radius:6px;display:inline-block;color:{ink};"
+        )
         if highlight_idx is not None and idx == highlight_idx:
-            style += "background:#f9e79f;border:2px solid #f1c40f;"
+            style += f"background:{highlight_soft};border:2px solid {highlight};"
         else:
-            style += "background:#ecf0f1;"
+            style += f"background:{surface};"
         parts.append(f'<span style="{style}">{safe}</span>')
-    return f'<div style="line-height:2.2;font-size:18px;">{"".join(parts)}</div>'
+    return (
+        f'<div style="line-height:2.2;font-size:18px;font-family:var(--gp-font-body);">'
+        f'{"".join(parts)}</div>'
+    )
 
 
 def reading_bubbles_html(gp_label: str, non_gp_label: str, *, winner: str | None = None) -> str:
     """Show competing parse hypotheses as floating callout bubbles."""
-    gp_style = "border:2px solid #c0392b;"
-    non_gp_style = "border:2px solid #2980b9;"
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    gp_soft = theme_color("gp_soft")
+    non_gp_soft = theme_color("non_gp_soft")
+    ink = theme_color("ink")
+    gp_style = f"border:2px solid {gp};"
+    non_gp_style = f"border:2px solid {non_gp};"
     if winner == "gp":
-        gp_style += "background:#fadbd8;color:#1c2833;font-weight:700;"
+        gp_style += f"background:{gp_soft};color:{ink};font-weight:700;"
     elif winner == "non_gp":
-        non_gp_style += "background:#d6eaf8;color:#1c2833;font-weight:700;"
+        non_gp_style += f"background:{non_gp_soft};color:{ink};font-weight:700;"
     return f"""
-    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;font-family:var(--gp-font-body);">
       <div style="{gp_style}border-radius:12px;padding:12px 16px;max-width:280px;">
-        <div style="font-size:12px;color:#922b21;">Garden-path reading</div>
+        <div style="font-size:12px;color:{gp};">Garden-path reading</div>
         <div>{html.escape(gp_label)}</div>
       </div>
       <div style="{non_gp_style}border-radius:12px;padding:12px 16px;max-width:280px;">
-        <div style="font-size:12px;color:#1f618d;">Non-GP reading</div>
+        <div style="font-size:12px;color:{non_gp};">Non-GP reading</div>
         <div>{html.escape(non_gp_label)}</div>
       </div>
     </div>
@@ -301,6 +403,9 @@ def circuit_svg(category_counts: pd.DataFrame) -> str:
     layers = sorted(category_counts["layer"].unique())
     width = 760
     height = 40 + 70 * len(layers)
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    neutral = theme_color("neutral")
     chunks: list[str] = [
         f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
     ]
@@ -313,8 +418,10 @@ def circuit_svg(category_counts: pd.DataFrame) -> str:
         subset = category_counts[category_counts["layer"] == layer].head(6)
         x = 90
         for _, row in subset.iterrows():
-            color = "#c0392b" if row["reading_side"] == "pro_gp" else (
-                "#2980b9" if row["reading_side"] == "anti_gp" else "#7f8c8d"
+            color = (
+                gp
+                if row["reading_side"] == "pro_gp"
+                else (non_gp if row["reading_side"] == "anti_gp" else neutral)
             )
             count = int(row["count"])
             label = html.escape(f"{row['Category']} ({count})")
@@ -360,7 +467,12 @@ def probe_figure5_plot(probe_data: dict[str, list[dict[str, float | str]]], cond
         "GEN": "GEN (non-GP reading)",
         "RIGHT-ARC": "RIGHT-ARC (implausible)",
     }
-    for action, color in (("LEFT-ARC", "#c0392b"), ("GEN", "#2980b9"), ("RIGHT-ARC", "#95a5a6")):
+    colors = {
+        "LEFT-ARC": theme_color("gp"),
+        "GEN": theme_color("non_gp"),
+        "RIGHT-ARC": theme_color("neutral"),
+    }
+    for action in ("LEFT-ARC", "GEN", "RIGHT-ARC"):
         if action in df.columns:
             fig.add_trace(
                 go.Scatter(
@@ -368,7 +480,7 @@ def probe_figure5_plot(probe_data: dict[str, list[dict[str, float | str]]], cond
                     y=df[action],
                     mode="lines+markers",
                     name=labels[action],
-                    line=dict(color=color),
+                    line=dict(color=colors[action]),
                 )
             )
     fig.update_layout(
@@ -397,7 +509,7 @@ def faithfulness_anchor_figure() -> go.Figure:
             name="NP/Z",
             text=["NP/Z: 3.48 (65 features)"],
             textposition="middle right",
-            marker=dict(color="#c0392b", size=14),
+            marker=dict(color=theme_color("gp"), size=14),
         )
     )
     fig.add_trace(
@@ -408,13 +520,13 @@ def faithfulness_anchor_figure() -> go.Figure:
             name="NP/S",
             text=["NP/S: 0.20 (155 features)"],
             textposition="middle right",
-            marker=dict(color="#2980b9", size=14),
+            marker=dict(color=theme_color("non_gp"), size=14),
         )
     )
     fig.add_hline(
         y=1.0,
         line_dash="dot",
-        line_color="gray",
+        line_color=theme_color("neutral"),
         annotation_text="faithfulness = 1 (circuit matches full model)",
         annotation_position="bottom right",
     )
@@ -433,9 +545,9 @@ def group_ablation_figure(effects: pd.DataFrame) -> go.Figure:
     """Bar chart of measured Δm when zero-ablating each annotated feature group."""
     plot_df = effects.sort_values("delta_m", key=lambda s: s.abs(), ascending=False)
     colors = {
-        "pro_gp": "#c0392b",
-        "anti_gp": "#2980b9",
-        "other": "#7f8c8d",
+        "pro_gp": theme_color("gp"),
+        "anti_gp": theme_color("non_gp"),
+        "other": theme_color("neutral"),
     }
     fig = go.Figure(
         go.Bar(
@@ -451,7 +563,7 @@ def group_ablation_figure(effects: pd.DataFrame) -> go.Figure:
         )
     )
     baseline = float(plot_df["baseline_m"].iloc[0])
-    fig.add_hline(y=0, line_dash="dot", line_color="gray")
+    fig.add_hline(y=0, line_dash="dot", line_color=theme_color("neutral"))
     fig.update_layout(
         title=(
             "Measured effect of zero-ablating each feature group on "

@@ -26,13 +26,11 @@ SECTIONS: Final[tuple[SectionSpec, ...]] = (
     SectionSpec("intro", "home", "Introduction"),
     SectionSpec("m0", "0", "0 — Primer"),
     SectionSpec("m1", "1", "1 — Feel the garden path"),
-    SectionSpec("m2", "2", "2 — Behavioral lab (Fig 2)"),
-    SectionSpec("m3", "3", "3 — Feature microscope (Fig 3)"),
-    SectionSpec("m4", "4", "4 — Intervention sandbox (Fig 4)"),
-    SectionSpec("m5", "5", "5 — Multiple readings? (RQ2)"),
-    SectionSpec("m6", "6", "6 — Repair vs reanalysis (RQ3)"),
-    SectionSpec("m7", "7", "7 — Your garden-path sentence"),
-    SectionSpec("m8", "8", "8 — Outro"),
+    SectionSpec("rq1", "2", "2 — RQ1: syntax or heuristics?"),
+    SectionSpec("m5", "3", "3 — Multiple readings? (RQ2)"),
+    SectionSpec("m6", "4", "4 — Repair vs reanalysis (RQ3)"),
+    SectionSpec("m7", "5", "5 — Your garden-path sentence"),
+    SectionSpec("m8", "6", "6 — Outro"),
 )
 
 MODULE_NAV_DEFAULT_KEY: Final[str] = "Introduction"

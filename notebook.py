@@ -86,11 +86,8 @@ def _(module_nav):
 @app.cell(hide_code=True)
 def _(mo, show_intro):
     mo.stop(not show_intro)
-    from gp_notebook.paths import ASSETS_DIR as _INTRO_ASSETS
     from gp_notebook.sidebar_nav import wrap_with_class as _wrap_with_class
     from gp_notebook.viz import notebook_hero_html as _hero_html
-    from gp_notebook.viz import paper_figure_html as _paper_fig
-    from gp_notebook.viz import provenance_row_html as _prov_row
 
     hero = mo.Html(_hero_html())
     tldr = mo.md(
@@ -122,75 +119,12 @@ Gemma-2-2b, because Pythia-70m cannot answer follow-up questions above chance (p
         ),
         kind="info",
     )
-    provenance_legend = mo.Html(
-        _prov_row(
-            [
-                ("recomputed", ""),
-                ("live", ""),
-                ("paper", ""),
-                ("schematic", ""),
-                ("extension", ""),
-            ],
-            note=(
-                "Every chart in this notebook carries one of these provenance tags — "
-                "hover a tag to see what it means. Nothing is presented as recomputed unless "
-                "this project's code actually regenerated it from the model."
-            ),
-        )
-    )
-    reader_note = mo.md(
-        "_Code is hidden by default so the notebook reads as an interactive article; any cell's "
-        "code can be revealed from its cell menu. The default mode runs entirely from recomputed "
-        "caches shipped with the project. Enable **Live mode** in the sidebar to score your own "
-        "sentences and re-run interventions on the model directly._"
-    )
-    recommended = mo.callout(
-        mo.md(
-            "**Recommended path:** M1 Feel the garden path → M2 Behavioral lab → "
-            "M3 Feature microscope → **M4 Flip the reading** → M5 Multiple readings → "
-            "M6 Repair vs reanalysis → M7 Your sentence → M8 Outro"
-        ),
-        kind="success",
-    )
-    judge_panel = mo.accordion(
-        {
-            "What runs where (expected runtimes)": mo.md(
-                """
-| Mode | What it uses | Typical latency |
-|------|--------------|-----------------|
-| **Cached (default)** | Recomputed caches in `assets/` (real Pythia-70m runs) | instant |
-| **Live scoring** (M7) | Pythia-70m forward passes (~160 MB download on first use) | ~1 s on GPU, a few seconds on CPU |
-| **Live interventions** (M4, M7) | Pythia-70m + 19 SAE checkpoints (~2.3 GB, one-click download in M4) | ~1–2 s per setting on GPU; ~15–60 s on CPU |
-
-**Three-minute tour:** drag through the sentence in M1 · flip the reading with the
-*Paper syntactic flip* preset in M4 · then drag the subject-detector slider to 0 and watch the
-garden path come back.
-"""
-            )
-        }
-    )
-    paper_figure = mo.Html(
-        _paper_fig(
-            str(_INTRO_ASSETS / "paper_figures" / "fig1_overview.png"),
-            "The paper's pipeline (Figure 1, reproduced from the arXiv source): "
-            "① locate causally influential SAE features via attribution, "
-            "② annotate them by inspecting activating contexts, "
-            "③ verify causally by ablating or upweighting them and re-measuring "
-            "m = p(GP) − p(non-GP).",
-        )
-    )
     _wrap_with_class(
         mo.vstack(
             [
                 hero,
                 tldr,
                 lay_summary,
-                provenance_legend,
-                reader_note,
-                recommended,
-                judge_panel,
-                mo.md("### The paper's approach at a glance"),
-                paper_figure,
             ]
         ),
         "gp-intro-page",
@@ -303,7 +237,6 @@ def _(mo, show_intro):
         lookup_sweep_intervention,
         paper_figure_html,
         probe_figure5_plot,
-        provenance_row_html,
         reading_bubbles_html,
         token_reveal_html,
         tug_of_war_html,
@@ -353,7 +286,6 @@ def _(mo, show_intro):
         paper_figure_html,
         probe_cache,
         probe_figure5_plot,
-        provenance_row_html,
         px,
         reading_bubbles_html,
         run_intervention_suite,
@@ -442,7 +374,7 @@ def _(mo, show_m0):
 
 
 @app.cell(hide_code=True)
-def _(load_parquet_cache, mo, np, provenance_row_html, show_m0, sparsity, spike_bar_html):
+def _(load_parquet_cache, mo, np, show_m0, sparsity, spike_bar_html):
     mo.stop(not show_m0)
     rng = np.random.default_rng(0)
     raw = rng.normal(0, 1, 32)
@@ -475,15 +407,6 @@ def _(load_parquet_cache, mo, np, provenance_row_html, show_m0, sparsity, spike_
     ]
     _tok_act = load_parquet_cache("token_activations_npz.parquet")
     if _tok_act is not None and not _tok_act.empty and "sentence" in _tok_act.columns:
-        _content.append(
-            mo.Html(
-                provenance_row_html(
-                    [("recomputed", "SAE activations")],
-                    note="Below: two of the paper's annotated features, recorded by running "
-                    "Pythia-70m + SAEs on an actual dataset sentence.",
-                )
-            )
-        )
         _first_sentence = _tok_act["sentence"].iloc[0]
         _sent = _tok_act[
             (_tok_act["sentence"] == _first_sentence)
@@ -505,7 +428,7 @@ def _(load_parquet_cache, mo, np, provenance_row_html, show_m0, sparsity, spike_
 
 
 @app.cell(hide_code=True)
-def _(attn_cache, attention_view, layer_select, mo, np, provenance_row_html, show_m0):
+def _(attn_cache, attention_view, layer_select, mo, np, show_m0):
     mo.stop(not show_m0)
     _content = [mo.md("### Attention patterns")]
     _attn_panel = mo.md("_Attention cache not loaded. Run `uv run python precompute.py`._")
@@ -514,14 +437,6 @@ def _(attn_cache, attention_view, layer_select, mo, np, provenance_row_html, sho
         attn_data = np.array(attn_cache["layers"][layer_idx])
         _tokens = attn_cache["tokens"]
         attn_html = attention_view(_tokens, attn_data)
-        _content.append(
-            mo.Html(
-                provenance_row_html(
-                    [("recomputed", "attention weights")],
-                    note="Pythia-70m attention on a dataset sentence, all heads of the selected layer.",
-                )
-            )
-        )
         _content.append(layer_select)
         _attn_panel = mo.vstack([
             mo.md(f"**Layer {layer_idx}** — {attn_data.shape[0]} heads"),
@@ -529,28 +444,6 @@ def _(attn_cache, attention_view, layer_select, mo, np, provenance_row_html, sho
         ])
     _content.append(_attn_panel)
     mo.vstack(_content)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo, show_m0):
-    mo.stop(not show_m0)
-    mo.md(
-        """
-### Notebook roadmap
-
-| Ch. | Title | Paper | RQ |
-|-----|-------|-------|-----|
-| 1 | Feel the garden path | §4.1 setup | — |
-| 2 | Behavioral lab | Figure 2 | RQ1 |
-| 3 | Feature microscope | Figures 1 & 3, Table 2 | RQ1 |
-| 4 | Intervention sandbox | Figure 4 | RQ1 |
-| 5 | Multiple readings | Figure 5 | RQ2 |
-| 6 | Repair vs reanalysis | Table 3, §6 | RQ3 |
-| 7 | Your sentence | Extension | — |
-| 8 | Outro | Provenance / wrap-up | — |
-"""
-    )
     return
 
 
@@ -617,7 +510,6 @@ def _(
     mo,
     np,
     prefix_cache,
-    provenance_row_html,
     px,
     reading_bubbles_html,
     scrubber,
@@ -655,18 +547,7 @@ def _(
     ]
 
     if verb_type.value == "ambiguous" and scrubber is not None:
-        _content.extend(
-            [
-                mo.Html(
-                    provenance_row_html(
-                        [("recomputed", "prefix probabilities"), ("extension", "")],
-                        note="Every probability in this widget is a real Pythia-70m measurement "
-                        "at that prefix; the paper itself only scores full sentences.",
-                    )
-                ),
-                scrubber,
-            ]
-        )
+        _content.append(scrubber)
     else:
         _content.extend(
             [
@@ -701,12 +582,6 @@ def _(
         attn_to_last = attention_to_last_token_scores(layer0, len(tok_strs))
         _content.extend([
             mo.md("### Attention at the ambiguous noun (layer 0, mean over heads)"),
-            mo.Html(
-                provenance_row_html(
-                    [("recomputed", "attention")],
-                    note="Darker = more attention flowing into the final token.",
-                )
-            ),
             mo.iframe(
                 colored_token_view(
                     tok_strs,
@@ -758,7 +633,6 @@ def _(
     load_json_cache,
     mo,
     paper_figure_html,
-    provenance_row_html,
     px,
     show_m2,
     theme,
@@ -784,15 +658,6 @@ def _(
             )
         )
     else:
-        _content.append(
-            mo.Html(
-                provenance_row_html(
-                    [("recomputed", "all 216 sentence scores")],
-                    note="Every bar and table row below is a fresh Pythia-70m measurement made "
-                    "by this project's code, not a value copied from the paper.",
-                )
-            )
-        )
         behavior_fig = apply_plotly_theme(behavioral_figure(behavioral_summary), theme)
         table_selection = drill_table.value
         if table_selection is not None and len(table_selection) > 0:
@@ -843,24 +708,15 @@ def _(
         cond_key = selected["condition"].lower()
         attr_cache = load_json_cache(f"attributions_{cond_key}.json")
         if attr_cache is not None:
-            _content.extend(
-                [
-                    mo.Html(
-                        provenance_row_html(
-                            [("recomputed", "integrated gradients"), ("extension", "")],
-                            note="Token-level attribution of m is this notebook's addition — "
-                            "the paper attributes to SAE features, not input tokens.",
-                        )
+            _content.append(
+                mo.iframe(
+                    colored_token_view(
+                        attr_cache["tokens"],
+                        attr_cache["scores"],
+                        label="Which tokens push m = p(GP) − p(non-GP)?",
                     ),
-                    mo.iframe(
-                        colored_token_view(
-                            attr_cache["tokens"],
-                            attr_cache["scores"],
-                            label="Which tokens push m = p(GP) − p(non-GP)?",
-                        ),
-                        height="150px",
-                    ),
-                ]
+                    height="150px",
+                ),
             )
     mo.vstack(_content)
     return
@@ -936,7 +792,6 @@ def _(
     load_parquet_cache,
     mo,
     paper_figure_html,
-    provenance_row_html,
     show_m3,
     spike_bar_html,
     theme,
@@ -961,15 +816,6 @@ def _(
         ablation_fig = apply_plotly_theme(group_ablation_figure(group_effects), theme)
         ablation_panel = mo.vstack(
             [
-                mo.Html(
-                    provenance_row_html(
-                        [("recomputed", "exact zero-ablations"), ("extension", "")],
-                        note="Instead of re-estimating each feature's effect with AtP-IG, this "
-                        "notebook zero-ablates every annotated feature *family* and measures the "
-                        "exact change in m over all 24 sentences — the random-feature control "
-                        "shows the effects are specific.",
-                    )
-                ),
                 ablation_fig,
                 mo.md(
                     "Word-detector heuristics move m at least as much as the genuinely syntactic "
@@ -1023,13 +869,6 @@ def _(
             "feature by inspecting its activating contexts. The catalogue below is the authors' "
             "own annotation table; the ablation chart then *verifies causally* what each family "
             "of features contributes. Red = pro-GP, blue = anti-GP."
-        ),
-        mo.Html(
-            provenance_row_html(
-                [("paper", "authors' feature annotations")],
-                note="Feature ids, positions, and labels come from the paper repository's "
-                "annotated CSVs (Table 2 / Figure 3 source data).",
-            )
         ),
         mo.hstack([circuit_condition, category_filter, layer_slider, feature_pick]),
         mo.Html(circuit_svg(counts)),
@@ -1115,7 +954,6 @@ def _(
     object_slider,
     paper_figure_html,
     preset,
-    provenance_row_html,
     px,
     run_intervention_suite,
     sae_download,
@@ -1181,21 +1019,18 @@ def _(
             obj_amp = 2.0
 
     result = None
-    result_badges: list[tuple[str, str]] = []
     if preset.value == "baseline" and interventions_df is not None:
         _row = interventions_df[
             (interventions_df["condition"] == cond)
             & (interventions_df["intervention"] == "baseline")
         ].iloc[0]
         result = {k: float(_row[k]) for k in ("mean_p_gp", "mean_p_non_gp", "mean_diff")}
-        result_badges = [("recomputed", "no-edit baseline")]
     elif preset.value == "random" and interventions_df is not None:
         _row = interventions_df[
             (interventions_df["condition"] == cond)
             & (interventions_df["intervention"] == "random")
         ].iloc[0]
         result = {k: float(_row[k]) for k in ("mean_p_gp", "mean_p_non_gp", "mean_diff")}
-        result_badges = [("recomputed", "random-feature control")]
     elif preset.value in {"custom", "syntactic"} and intervention_sweeps is not None:
         result = lookup_sweep_intervention(
             intervention_sweeps,
@@ -1204,8 +1039,6 @@ def _(
             object_amp=obj_amp,
             clause_amp=cl_amp,
         )
-        if result is not None:
-            result_badges = [("recomputed", "cached amplitude sweep")]
 
     if live_run.value and preset.value in {"custom", "syntactic"}:
         if saes_available():
@@ -1219,7 +1052,6 @@ def _(
                     object_amp=obj_amp,
                     clause_amp=cl_amp,
                 )
-                result_badges = [("live", "just recomputed on this machine")]
             except Exception as exc:  # noqa: BLE001
                 mo.output.append(mo.callout(f"Live intervention failed: {exc}", kind="warn"))
         else:
@@ -1233,16 +1065,8 @@ def _(
     example = gp_df[gp_df["condition"] == cond].iloc[0]["sentence_ambiguous"]
 
     if result is not None:
-        result_panel = mo.vstack(
-            [
-                mo.Html(tug_of_war_html(result["mean_p_gp"], result["mean_p_non_gp"])),
-                mo.Html(
-                    provenance_row_html(
-                        result_badges,
-                        note=f"mean over all 24 {cond} sentences · m = {result['mean_diff']:+.4f}",
-                    )
-                ),
-            ]
+        result_panel = mo.Html(
+            tug_of_war_html(result["mean_p_gp"], result["mean_p_non_gp"])
         )
     else:
         result_panel = mo.callout(
@@ -1353,13 +1177,6 @@ def _(
     if paper_chart is not None:
         _content.extend(
             [
-                mo.Html(
-                    provenance_row_html(
-                        [("recomputed", "Figure 4 protocol")],
-                        note="Baseline / syntactic / random bars regenerated from the model by "
-                        "this project's code.",
-                    )
-                ),
                 paper_chart,
                 mo.accordion(
                     {
@@ -1383,15 +1200,6 @@ def _(
     _content.append(live_run)
     if feat_panels:
         _content.append(mo.md("### The features being clamped (baseline activations)"))
-        _content.append(
-            mo.Html(
-                provenance_row_html(
-                    [("recomputed", "SAE activations")],
-                    note="One pro-GP and one anti-GP feature recorded on the example sentence "
-                    "before any intervention.",
-                )
-            )
-        )
         _content.extend(feat_panels)
     mo.vstack(_content)
     return
@@ -1430,7 +1238,6 @@ def _(
     paper_figure_html,
     probe_cache,
     probe_figure5_plot,
-    provenance_row_html,
     rq2_condition,
     show_m5,
     theme,
@@ -1459,13 +1266,6 @@ def _(
         activation_fig = apply_plotly_theme(activation_heatmap(_tok_act), theme)
         _content.extend(
             [
-                mo.Html(
-                    provenance_row_html(
-                        [("recomputed", "SAE activations")],
-                        note="Measured on dataset sentences with the paper's SAEs; rows are "
-                        "annotated features, columns token positions.",
-                    )
-                ),
                 activation_fig,
             ]
         )
@@ -1488,14 +1288,6 @@ def _(
                 "neither reading is discarded (except in the final layer, where probe quality "
                 "collapses; paper §5)."
             ),
-            mo.Html(
-                provenance_row_html(
-                    [("paper", "Figure 5, digitized")],
-                    note="Training these probes needs the Penn Treebank (licensed), so the "
-                    "curves are digitized from the paper's figure rather than regenerated — "
-                    "the original is embedded below for comparison.",
-                )
-            ),
             probe_fig,
             mo.accordion(
                 {
@@ -1509,12 +1301,6 @@ def _(
                 }
             ),
             mo.hstack([mo.Html(serial_svg), mo.Html(parallel_svg)]),
-            mo.Html(
-                provenance_row_html(
-                    [("schematic", "parser cartoons")],
-                    note="Conceptual illustration of the serial-vs-parallel hypotheses.",
-                )
-            ),
         ]
     )
 
@@ -1575,7 +1361,6 @@ def _(
     gprc_condition,
     gprc_table_df,
     mo,
-    provenance_row_html,
     sample_gprc_items,
     show_m6,
 ):
@@ -1607,13 +1392,6 @@ def _(
             "representation (like humans do) or **reanalyze** from scratch? The paper's test: "
             "find the circuit Gemma uses to *answer questions* about garden-path sentences "
             "(GPRC), and check how much it overlaps the circuit that *parses* them."
-        ),
-        mo.Html(
-            provenance_row_html(
-                [("paper", "Table 3 + circuit overlap")],
-                note="Gemma-2-2b circuit analysis needs ~10 GB of Gemma SAEs, so these values "
-                "are reported from the paper rather than regenerated here.",
-            )
         ),
         qa_table,
         mo.Html(overlap_svg),
@@ -1697,7 +1475,6 @@ def _(
     live_mode_available,
     live_switch,
     mo,
-    provenance_row_html,
     run_intervention_suite,
     saes_available,
     score_button,
@@ -1720,7 +1497,6 @@ def _(
     tops_df = None
     attr_html = None
     intervention_result = None
-    _result_badge = ("recomputed", "cached scores")
 
     if score_button.value or (not use_custom.value and not live_switch.value):
         try:
@@ -1743,7 +1519,6 @@ def _(
 
                 attr = token_attributions(model, tokenizer, user_sentence, condition, device=device, n_steps=12)
                 attr_html = colored_token_view(attr["tokens"], attr["scores"], label="Token IG")
-                _result_badge = ("live", "scored just now")
             else:
                 cached = gp_df[
                     (gp_df["sentence_ambiguous"] == user_sentence) & (gp_df["condition"] == condition)
@@ -1802,15 +1577,10 @@ def _(
             )
 
     score_md = (
-        mo.vstack(
-            [
-                mo.md(
-                    f"**{user_sentence}** ({condition})\n\n"
-                    f"p(GP)={live_scores['p_gp']:.4f}, p(non-GP)={live_scores['p_non_gp']:.4f}, "
-                    f"Δ={live_scores['diff']:+.4f}"
-                ),
-                mo.Html(provenance_row_html([_result_badge])),
-            ]
+        mo.md(
+            f"**{user_sentence}** ({condition})\n\n"
+            f"p(GP)={live_scores['p_gp']:.4f}, p(non-GP)={live_scores['p_non_gp']:.4f}, "
+            f"Δ={live_scores['diff']:+.4f}"
         )
         if live_scores
         else mo.md("_Click **Score sentence** or pick a curated example._")
@@ -1847,14 +1617,6 @@ def _(
         _content.append(mo.Html(
             tug_of_war_html(intervention_result["mean_p_gp"], intervention_result["mean_p_non_gp"])
         ))
-        _content.append(
-            mo.Html(
-                provenance_row_html(
-                    [("live", "syntactic clamp")],
-                    note="Paper protocol applied to your sentence — compare with its unedited score above.",
-                )
-            )
-        )
     mo.vstack(_content)
     return
 
@@ -1874,7 +1636,6 @@ def _(
     apply_plotly_theme,
     faithfulness_anchor_figure,
     mo,
-    provenance_row_html,
     show_m8,
     theme,
 ):
@@ -1901,15 +1662,6 @@ def _(
     _content.extend(
         [
             mo.md("### How much of the behavior do these circuits capture?"),
-            mo.Html(
-                provenance_row_html(
-                    [("paper", "faithfulness, Appendix C")],
-                    note="An important caveat the paper itself raises: at the circuit sizes "
-                    "analyzed, faithfulness is far from 1 (and approaches it non-monotonically "
-                    "as more features are added), so the annotated features are a causally "
-                    "verified *part* of the mechanism — not the whole mechanism.",
-                )
-            ),
             apply_plotly_theme(faithfulness_anchor_figure(), theme),
             mo.md(
                 """

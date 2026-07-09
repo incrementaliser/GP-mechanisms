@@ -447,6 +447,25 @@ button[role="radio"] > span {
   width: min(820px, 100%);
 }
 
+/* Compact Why + In plain language callouts on the Introduction page.
+   Marimo callouts use Tailwind p-12 / mt-12 / mb-12 on the inner div. */
+.gp-intro-callouts {
+  margin-top: 0.15rem;
+}
+
+.gp-intro-callouts marimo-callout-output > div {
+  padding: 0.5rem 0.75rem !important;
+  margin-top: 0.1rem !important;
+  margin-bottom: 0.1rem !important;
+  line-height: 1.35;
+}
+
+.gp-intro-callouts marimo-callout-output .paragraph,
+.gp-intro-callouts marimo-callout-output p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 .gp-hero {
   color: var(--gp-ink, #1c1917);
   margin: 0 0 20px;

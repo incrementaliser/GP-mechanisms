@@ -149,6 +149,10 @@ flowchart LR
   locate --> annotate --> intervene
 """
     )
+    callouts = _wrap_with_class(
+        mo.vstack([gist, lay_summary], gap=0.25),
+        "gp-intro-callouts",
+    )
     _wrap_with_class(
         mo.vstack(
             [
@@ -156,8 +160,7 @@ flowchart LR
                 tldr,
                 _wrap_with_class(pipeline, "gp-intro-pipeline"),
                 findings,
-                gist,
-                lay_summary,
+                callouts,
             ]
         ),
         "gp-intro-page",

@@ -604,3 +604,173 @@ body[data-theme="dark"] .gp-status-indicator[data-gp-tip]:hover::after {
 :host-context(body[data-theme="dark"]) [role="radiogroup"] > .flex.items-center.space-x-2 label {
   color: var(--gp-muted-fg);
 }
+
+/* ── Dark-mode callout palette ───────────────────────────────────────
+   The notebook's theme toggle darkens the page via html/body classes, but
+   marimo's output wrapper (.contents.light) keeps light Radix palettes for
+   mo.callout. Re-point the palette variables at dark values so callouts
+   stay readable when our theme is dark. */
+
+html[data-theme="dark"] .contents.light,
+html.dark .contents.light,
+html.dark-theme .contents.light,
+body[data-theme="dark"] .contents.light,
+body.dark-theme .contents.light,
+:host-context(html[data-theme="dark"]) .contents.light,
+:host-context(html.dark) .contents.light,
+:host-context(html.dark-theme) .contents.light,
+:host-context(body[data-theme="dark"]) .contents.light,
+:host-context(body.dark-theme) .contents.light {
+  --sky-1: #0d141f;
+  --sky-2: #111a27;
+  --sky-7: #1e3f66;
+  --sky-8: #3178c6;
+  --grass-1: #0d1510;
+  --grass-2: #131a14;
+  --grass-7: #2d5736;
+  --grass-8: #3e7949;
+  --amber-1: #171207;
+  --amber-2: #1d1508;
+  --amber-7: #6e4d1b;
+  --amber-8: #8f6424;
+  --red-1: #1c1113;
+  --red-2: #201314;
+  --red-7: #6e2f34;
+  --red-8: #94434a;
+  --gray-1: #111113;
+  --gray-2: #191a1c;
+  --gray-7: #46484f;
+  --gray-8: #5a5d67;
+}
+
+/* Bold text inside darkened callouts should match the surrounding light text
+   rather than Tailwind's hardcoded dark prose-bold color. */
+html[data-theme="dark"] .contents.light strong,
+html.dark .contents.light strong,
+body.dark-theme .contents.light strong,
+:host-context(html[data-theme="dark"]) .contents.light strong,
+:host-context(html.dark) .contents.light strong,
+:host-context(body.dark-theme) .contents.light strong {
+  color: inherit;
+}
+
+/* Markdown table zebra striping uses a light row background in marimo's
+   light prose palette; swap in a subtle dark stripe when our theme is dark. */
+html[data-theme="dark"] .contents.light table tbody tr:nth-child(odd),
+html.dark .contents.light table tbody tr:nth-child(odd),
+body.dark-theme .contents.light table tbody tr:nth-child(odd),
+:host-context(html[data-theme="dark"]) .contents.light table tbody tr:nth-child(odd),
+:host-context(html.dark) .contents.light table tbody tr:nth-child(odd),
+:host-context(body.dark-theme) .contents.light table tbody tr:nth-child(odd),
+html[data-theme="dark"] .markdown table tbody tr:nth-child(odd),
+html.dark .markdown table tbody tr:nth-child(odd),
+body.dark-theme .markdown table tbody tr:nth-child(odd),
+:host-context(html[data-theme="dark"]) .markdown table tbody tr:nth-child(odd),
+:host-context(html.dark) .markdown table tbody tr:nth-child(odd),
+:host-context(body.dark-theme) .markdown table tbody tr:nth-child(odd) {
+  background-color: rgba(148, 163, 184, 0.09);
+}
+
+/* ── Provenance badges ───────────────────────────────────────────── */
+
+.gp-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.6rem 0;
+}
+
+.gp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.gp-badge--recomputed {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.gp-badge--live {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.gp-badge--paper {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.gp-badge--schematic {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+.gp-badge--extension {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+.gp-badge-note {
+  font-size: 0.78rem;
+  color: var(--gp-status-muted);
+}
+
+html[data-theme="dark"] .gp-badge--recomputed,
+html.dark .gp-badge--recomputed,
+body.dark-theme .gp-badge--recomputed {
+  background: rgba(22, 101, 52, 0.35);
+  color: #86efac;
+  border-color: rgba(134, 239, 172, 0.4);
+}
+
+html[data-theme="dark"] .gp-badge--live,
+html.dark .gp-badge--live,
+body.dark-theme .gp-badge--live {
+  background: rgba(185, 28, 28, 0.3);
+  color: #fca5a5;
+  border-color: rgba(252, 165, 165, 0.4);
+}
+
+html[data-theme="dark"] .gp-badge--paper,
+html.dark .gp-badge--paper,
+body.dark-theme .gp-badge--paper {
+  background: rgba(146, 64, 14, 0.32);
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.4);
+}
+
+html[data-theme="dark"] .gp-badge--schematic,
+html.dark .gp-badge--schematic,
+body.dark-theme .gp-badge--schematic {
+  background: rgba(91, 33, 182, 0.32);
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.4);
+}
+
+html[data-theme="dark"] .gp-badge--extension,
+html.dark .gp-badge--extension,
+body.dark-theme .gp-badge--extension {
+  background: rgba(29, 78, 216, 0.32);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.4);
+}
+
+html[data-theme="dark"] .gp-paper-figure img,
+html.dark .gp-paper-figure img,
+body.dark-theme .gp-paper-figure img {
+  background: #f8fafc;
+}

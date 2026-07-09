@@ -20,6 +20,7 @@ dependencies = [
     "pyarrow>=16.0.0",
     "circuitsvis>=1.43.3",
     "captum>=0.9.0",
+    "anywidget>=0.11.0",
 ]
 
 [project.scripts]

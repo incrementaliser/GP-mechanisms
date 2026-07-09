@@ -96,36 +96,3 @@ def layer_narrative(condition: str) -> list[tuple[int, str]]:
             )
         narrative.append((layer, text))
     return narrative
-
-
-def representative_activation_matrix(condition: str) -> pd.DataFrame:
-    """Load real precomputed activations when available, else build synthetic approximation."""
-    from gp_notebook.paths import load_parquet_cache
-
-    cached = load_parquet_cache(f"token_activations_{condition.lower()}.parquet")
-    if cached is not None and not cached.empty:
-        return cached
-
-    return _synthetic_activation_matrix(condition)
-
-
-def _synthetic_activation_matrix(condition: str) -> pd.DataFrame:
-    """Build a synthetic activation matrix for ambiguous inputs using paper-reported ranges."""
-    df = enrich_feature_table(condition)
-    syntactic = df[df["reading_side"].isin({"pro_gp", "anti_gp"})].copy()
-    positions = sorted(syntactic["Position"].unique())
-    rows: list[dict[str, float | str | int]] = []
-    for _, feature in syntactic.iterrows():
-        base = 0.35 if feature["reading_side"] == "pro_gp" else 0.30
-        for pos in positions:
-            activation = base if pos == feature["Position"] else base * 0.45
-            rows.append(
-                {
-                    "feature": feature["Annotation"],
-                    "category": feature["Category"],
-                    "reading_side": feature["reading_side"],
-                    "position": pos,
-                    "activation": activation,
-                }
-            )
-    return pd.DataFrame(rows)

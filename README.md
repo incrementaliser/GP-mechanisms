@@ -3,6 +3,23 @@
 This repo provides the code for the paper [*Incremental Sentence Processing Mechanisms in Autoregressive
 Transformer Language Models*](https://arxiv.org/abs/2412.05353). Using this code, you should be able to replicate all of the experiments in the paper, though some of the data used (in particular the Penn Treebank) is not publicly / freely available, and external data (that does not originate from this project) should be downloaded from its source.
 
+## Interactive marimo notebook
+
+`notebook.py` is an interactive marimo reproduction of the paper (molab Notebook Competition #2):
+
+```bash
+uv sync                     # install dependencies
+uv run marimo edit notebook.py
+```
+
+- **Cached mode (default):** every visual runs instantly from recomputed model outputs in
+  `assets/` — no GPU needed. Each chart carries a provenance tag
+  (Recomputed / Live / Paper-reported / Schematic / Extension).
+- **Live mode:** toggle in the sidebar to score your own sentences and re-run causal
+  interventions. SAE checkpoints (~2.3 GB) download with one click inside Module 4.
+- **Regenerate all caches:** `uv run python precompute.py` (requires the SAE checkpoints;
+  a GPU makes it much faster).
+
 ## Replicate our Results
 
 ### Gather Results

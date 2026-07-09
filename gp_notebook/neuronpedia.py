@@ -40,7 +40,8 @@ def feature_card_html(row: pd.Series) -> str:
     border = "#c0392b" if side == "pro_gp" else "#2980b9" if side == "anti_gp" else "#95a5a6"
     return f"""
     <div style="border:2px solid {border}; border-radius:10px; padding:12px 14px;
-                margin:8px 0; background:#fafafa; font-family:system-ui,sans-serif;">
+                margin:8px 0; background:#fafafa; color:#1c2833;
+                font-family:system-ui,sans-serif;">
       <div style="font-weight:700; font-size:0.95rem;">{html.escape(feature_id)}</div>
       <div style="color:#555; font-size:0.85rem; margin:4px 0;">Layer {layer} · {category}</div>
       <div style="font-size:0.9rem; margin-bottom:8px;">{annotation}</div>
@@ -81,13 +82,14 @@ def spike_bar_html(
         safe = html.escape(tok)
         height = int(8 + 40 * (act / max_act))
         on = act >= threshold
-        bg = "#e74c3c" if on else "#ecf0f1"
-        color = "#fff" if on else "#333"
+        bg = "#e74c3c" if on else "#aeb6bf"
+        # Labels sit on the page background, so inherit the theme text color.
+        label_style = "font-weight:700;" if on else "opacity:0.65;"
         parts.append(
             f"<div style='text-align:center;min-width:28px;'>"
             f"<div style='height:{height}px;width:22px;margin:0 auto;background:{bg};"
             f"border-radius:3px 3px 0 0;'></div>"
-            f"<div style='font-size:10px;color:{color};'>{safe}</div></div>"
+            f"<div style='font-size:10px;color:inherit;{label_style}'>{safe}</div></div>"
         )
     parts.append("</div>")
     return "".join(parts)

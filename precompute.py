@@ -9,11 +9,10 @@ import pandas as pd
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from gp_notebook.atp_ig import save_atp_ig_cache
+from gp_notebook.ablation import save_group_effect_caches
 from gp_notebook.behavior import MODEL_NAME, aggregate_behavioral_summary, evaluate_dataset, top_next_tokens
 from gp_notebook.cache_status import save_cache_manifest
 from gp_notebook.device import detect_device_info, get_torch_device
-from gp_notebook.features import category_counts, representative_activation_matrix
 from gp_notebook.gprc import CIRCUIT_IOU, TABLE3_ACCURACIES, load_gprc_dataset
 from gp_notebook.interventions import paper_style_interventions, run_intervention_suite, saes_available
 from gp_notebook.paths import ASSETS_DIR, ensure_assets_dir, load_gp_dataset
@@ -37,99 +36,66 @@ def save_behavioral_caches(device: torch.device) -> None:
     summary.to_parquet(ASSETS_DIR / "behavioral_summary.parquet", index=False)
 
 
-def _intervention_fallback() -> pd.DataFrame:
-    """Return paper-approximate intervention means when live runs are unavailable."""
-    return pd.DataFrame(
-        [
-            {"condition": "NPZ", "intervention": "baseline", "mean_diff": 0.12, "mean_p_gp": 0.18, "mean_p_non_gp": 0.06},
-            {"condition": "NPZ", "intervention": "syntactic", "mean_diff": -0.08, "mean_p_gp": 0.05, "mean_p_non_gp": 0.13},
-            {"condition": "NPZ", "intervention": "random", "mean_diff": 0.11, "mean_p_gp": 0.17, "mean_p_non_gp": 0.06},
-            {"condition": "NPS", "intervention": "baseline", "mean_diff": -0.10, "mean_p_gp": 0.04, "mean_p_non_gp": 0.14},
-            {"condition": "NPS", "intervention": "syntactic", "mean_diff": 0.06, "mean_p_gp": 0.12, "mean_p_non_gp": 0.06},
-            {"condition": "NPS", "intervention": "random", "mean_diff": -0.09, "mean_p_gp": 0.05, "mean_p_non_gp": 0.14},
-        ]
-    )
-
-
 def save_intervention_caches() -> None:
     """Run paper-style causal interventions when SAE checkpoints are available."""
     if not saes_available():
-        _intervention_fallback().to_parquet(ASSETS_DIR / "interventions.parquet", index=False)
+        print("SAEs unavailable — skipping interventions.parquet (no fabricated values written).")
         return
-    try:
-        df = load_gp_dataset()
-        interventions = paper_style_interventions(df)
-    except (AssertionError, AttributeError, IndexError, RuntimeError, FileNotFoundError) as exc:
-        print(f"Intervention precompute failed ({exc}); writing fallback values.")
-        interventions = _intervention_fallback()
+    df = load_gp_dataset()
+    interventions = paper_style_interventions(df)
     interventions.to_parquet(ASSETS_DIR / "interventions.parquet", index=False)
 
 
+# Amplitude grids for the Module 4 sandbox. SAE features are post-ReLU and
+# therefore non-negative, so only amplitudes >= 0 are physically meaningful.
+SWEEP_PRIMARY_AMPS: tuple[float, ...] = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+SWEEP_CLAUSE_AMPS: tuple[float, ...] = (0.0, 1.0, 2.0, 3.0)
+
+
 def save_intervention_sweeps() -> None:
-    """Cache a small grid of slider settings for reactive M5 in precomputed mode."""
+    """Cache a real amplitude grid of interventions for the M4 sandbox sliders.
+
+    NP/Z varies the subject-detector amplitude x the clause-end amplitude
+    (object detectors are always clamped to 0, as in the paper). NP/S varies
+    the object-detector amplitude (subject and CP-verb detectors clamped to 0).
+    """
+    if not saes_available():
+        print("SAEs unavailable — skipping intervention sweep cache.")
+        return
+    df = load_gp_dataset()
     rows: list[dict[str, float | str | bool]] = []
-    amps = (-3.0, -1.0, 0.0, 1.0, 2.0, 3.0)
-    if saes_available():
-        try:
-            df = load_gp_dataset()
-            for condition in ("NPZ", "NPS"):
-                for subject_amp in amps:
-                    result = run_intervention_suite(
-                        df,
-                        condition,
-                        subject_amp=subject_amp,
-                        object_amp=0.0 if condition == "NPZ" else 2.0,
-                        clause_amp=2.0 if condition == "NPZ" else 0.0,
-                    )
-                    rows.append(
-                        {
-                            "condition": condition,
-                            "subject_amp": subject_amp,
-                            "object_amp": 0.0 if condition == "NPZ" else 2.0,
-                            "clause_amp": 2.0 if condition == "NPZ" else 0.0,
-                            "use_random": False,
-                            **result,
-                        }
-                    )
-        except Exception as exc:  # noqa: BLE001
-            print(f"Intervention sweep failed ({exc}); using analytic blend grid.")
-    if not rows:
-        fallback = _intervention_fallback()
-        for condition in ("NPZ", "NPS"):
-            base = fallback[
-                (fallback["condition"] == condition) & (fallback["intervention"] == "baseline")
-            ].iloc[0]
-            syn = fallback[
-                (fallback["condition"] == condition) & (fallback["intervention"] == "syntactic")
-            ].iloc[0]
-            for subject_amp in amps:
-                alpha = min(1.0, abs(subject_amp) / 3.0)
-                rows.append(
-                    {
-                        "condition": condition,
-                        "subject_amp": subject_amp,
-                        "object_amp": 0.0 if condition == "NPZ" else 2.0,
-                        "clause_amp": 2.0 if condition == "NPZ" else 0.0,
-                        "use_random": False,
-                        "mean_p_gp": base["mean_p_gp"] * (1 - alpha) + syn["mean_p_gp"] * alpha,
-                        "mean_p_non_gp": base["mean_p_non_gp"] * (1 - alpha) + syn["mean_p_non_gp"] * alpha,
-                        "mean_diff": base["mean_diff"] * (1 - alpha) + syn["mean_diff"] * alpha,
-                    }
-                )
+    for subject_amp in SWEEP_PRIMARY_AMPS:
+        for clause_amp in SWEEP_CLAUSE_AMPS:
+            result = run_intervention_suite(
+                df, "NPZ", subject_amp=subject_amp, object_amp=0.0, clause_amp=clause_amp
+            )
+            rows.append(
+                {
+                    "condition": "NPZ",
+                    "subject_amp": subject_amp,
+                    "object_amp": 0.0,
+                    "clause_amp": clause_amp,
+                    "use_random": False,
+                    **result,
+                }
+            )
+            print(f"  NPZ subject={subject_amp} clause={clause_amp}: m={result['mean_diff']:+.4f}")
+    for object_amp in SWEEP_PRIMARY_AMPS:
+        result = run_intervention_suite(
+            df, "NPS", subject_amp=0.0, object_amp=object_amp, clause_amp=0.0
+        )
+        rows.append(
+            {
+                "condition": "NPS",
+                "subject_amp": 0.0,
+                "object_amp": object_amp,
+                "clause_amp": 0.0,
+                "use_random": False,
+                **result,
+            }
+        )
+        print(f"  NPS object={object_amp}: m={result['mean_diff']:+.4f}")
     pd.DataFrame(rows).to_parquet(ASSETS_DIR / "intervention_sweeps.parquet", index=False)
-
-
-def save_activation_caches() -> None:
-    """Write activation matrices and category counts used by RQ2 visualizations."""
-    for condition in ("NPZ", "NPS"):
-        representative_activation_matrix(condition).to_parquet(
-            ASSETS_DIR / f"activations_{condition.lower()}.parquet",
-            index=False,
-        )
-        category_counts(condition).to_parquet(
-            ASSETS_DIR / f"circuit_counts_{condition.lower()}.parquet",
-            index=False,
-        )
 
 
 def save_token_activation_caches() -> None:
@@ -137,20 +103,12 @@ def save_token_activation_caches() -> None:
     if not saes_available():
         print("SAEs unavailable — skipping token activation caches.")
         return
-    try:
-        from gp_notebook.interventions import feature_token_activations
+    from gp_notebook.interventions import feature_token_activations
 
-        for condition in ("NPZ", "NPS"):
-            df = feature_token_activations(condition)
-            df.to_parquet(ASSETS_DIR / f"token_activations_{condition.lower()}.parquet", index=False)
-            print(f"  token_activations_{condition.lower()}.parquet: {len(df)} rows")
-    except Exception as exc:  # noqa: BLE001
-        print(f"Token activation precompute failed ({exc}); writing synthetic fallback.")
-        from gp_notebook.sae_fallback import synthetic_token_activations
-
-        for condition in ("NPZ", "NPS"):
-            df = synthetic_token_activations(condition)
-            df.to_parquet(ASSETS_DIR / f"token_activations_{condition.lower()}.parquet", index=False)
+    for condition in ("NPZ", "NPS"):
+        df = feature_token_activations(condition)
+        df.to_parquet(ASSETS_DIR / f"token_activations_{condition.lower()}.parquet", index=False)
+        print(f"  token_activations_{condition.lower()}.parquet: {len(df)} rows")
 
 
 def save_attention_caches() -> None:
@@ -273,14 +231,13 @@ def main() -> None:
     save_behavioral_caches(device)
     save_intervention_caches()
     save_intervention_sweeps()
-    save_activation_caches()
+    save_group_effect_caches()
     print("Computing visualization caches...")
     save_token_activation_caches()
     save_attention_caches()
     save_attribution_caches(device)
     save_prefix_probability_caches(device)
     save_top_next_token_cache(device)
-    save_atp_ig_cache()
     save_probe_cache()
     save_gprc_cache()
     save_metadata()

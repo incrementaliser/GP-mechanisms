@@ -124,9 +124,7 @@ def _(mo, show_intro):
     gist = mo.callout(
         mo.md(
             """
-**Gist.** This paper is the first SAE + causal-circuit study of garden-path processing: LMs
-maintain parallel parses, but when comprehension is tested after disambiguation they lean on
-spurious non-syntactic features rather than structural repair.
+**Why incremental processing matters?** Humans process dialogue incrementally, which means that we understand language word by word as it is generated. This incremental processing also gives use the ability to predict the speaker's intent and revision of our interpretation of what is being said on the fly if necessary. This feature can make conversational AI, and as a result verbal communication with robots, more human-like and robust to phenonmena like pauses, interruptions, corrections, etc. that make current dialogue systems brittle. In modern AI agents, it can allow for real-time tool calling before an instruction is finished, and in a healthcare setting, it can provide with a less frustrating communication with invidivuals with dementia or other cognitive impairments.
 """
         ),
         kind="neutral",
@@ -993,7 +991,12 @@ def _(
             "each one. Lower layers are mostly word detectors; upper layers encode subjects, "
             "objects, and clause boundaries. Red = pro-GP, blue = anti-GP."
         ),
-        mo.hstack([circuit_condition, category_filter, layer_slider, feature_pick]),
+        mo.hstack(
+            [circuit_condition, category_filter, layer_slider, feature_pick],
+            justify="start",
+            gap=1.5,
+            wrap=True,
+        ),
         mo.Html(circuit_svg(counts)),
         ablation_panel,
         mo.Html(
@@ -1249,8 +1252,10 @@ def _(
         ),
         mo.md(_protocol_note),
         mo.md(f"**Example sentence:** _{example}_"),
-        mo.hstack([sandbox_condition, preset]),
-        mo.hstack(_relevant_sliders) if preset.value == "custom" else mo.md(""),
+        mo.hstack([sandbox_condition, preset], justify="start", gap=1.5, wrap=True),
+        mo.hstack(_relevant_sliders, justify="start", gap=1.5, wrap=True)
+        if preset.value == "custom"
+        else mo.md(""),
         result_panel,
     ]
     if sweep_fig is not None:
@@ -1370,7 +1375,12 @@ def _(
                     "averaged over items, per layer of Pythia-70m.",
                 )
             ),
-            mo.hstack([mo.Html(serial_svg), mo.Html(parallel_svg)]),
+            mo.hstack(
+                [mo.Html(serial_svg), mo.Html(parallel_svg)],
+                justify="start",
+                gap=1.5,
+                wrap=True,
+            ),
         ]
     )
 
@@ -1444,7 +1454,8 @@ def _(
     gp = theme_color("gp")
     ink = theme_color("ink")
     overlap_svg = f"""
-    <svg width="520" height="160" xmlns="http://www.w3.org/2000/svg" role="img"
+    <svg class="gp-fluid-svg gp-fluid-svg--md" viewBox="0 0 520 160" width="100%" height="auto"
+         xmlns="http://www.w3.org/2000/svg" role="img"
          aria-label="Near-zero overlap between parse and GPRC circuits">
       <circle cx="150" cy="80" r="60" fill="{gp_soft}" opacity="0.9"/>
       <circle cx="280" cy="80" r="60" fill="{non_gp_soft}" opacity="0.9"/>

@@ -164,7 +164,8 @@ def sae_pipeline_svg() -> str:
     highlight = theme_color("highlight_soft")
     border = theme_color("border")
     return f"""
-<svg width="640" height="130" xmlns="http://www.w3.org/2000/svg" role="img"
+<svg class="gp-fluid-svg gp-fluid-svg--lg" viewBox="0 0 640 130" width="100%" height="auto"
+     xmlns="http://www.w3.org/2000/svg" role="img"
      aria-label="Sparse autoencoder maps activation x to sparse features f then reconstructs x-hat">
   <rect x="40" y="42" width="100" height="48" rx="10" fill="{surface}" stroke="{border}" stroke-width="1.5"/>
   <text x="90" y="32" font-size="13" text-anchor="middle" fill="{muted}">activation</text>
@@ -197,7 +198,8 @@ def serial_parallel_svgs() -> tuple[str, str]:
     border = theme_color("border")
     surface = theme_color("surface_card")
     serial = f"""
-<svg width="300" height="150" xmlns="http://www.w3.org/2000/svg" role="img"
+<svg class="gp-fluid-svg gp-fluid-svg--sm" viewBox="0 0 300 150" width="100%" height="auto"
+     xmlns="http://www.w3.org/2000/svg" role="img"
      aria-label="Serial parser hypothesis: only one reading active">
   <rect width="300" height="150" rx="12" fill="{surface}" stroke="{border}"/>
   <text x="16" y="28" font-size="13" fill="{ink}" font-weight="700">Serial (hypothesis)</text>
@@ -209,7 +211,8 @@ def serial_parallel_svgs() -> tuple[str, str]:
 </svg>
 """
     parallel = f"""
-<svg width="300" height="150" xmlns="http://www.w3.org/2000/svg" role="img"
+<svg class="gp-fluid-svg gp-fluid-svg--sm" viewBox="0 0 300 150" width="100%" height="auto"
+     xmlns="http://www.w3.org/2000/svg" role="img"
      aria-label="Parallel finding: both readings remain active">
   <rect width="300" height="150" rx="12" fill="{surface}" stroke="{border}"/>
   <text x="16" y="28" font-size="13" fill="{ink}" font-weight="700">Parallel (paper finding)</text>
@@ -407,7 +410,8 @@ def circuit_svg(category_counts: pd.DataFrame) -> str:
     non_gp = theme_color("non_gp")
     neutral = theme_color("neutral")
     chunks: list[str] = [
-        f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+        f'<svg class="gp-fluid-svg gp-fluid-svg--xl" viewBox="0 0 {width} {height}" '
+        f'width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">'
     ]
     for row_idx, layer in enumerate(layers):
         y = 30 + row_idx * 70

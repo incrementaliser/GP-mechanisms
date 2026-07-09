@@ -387,6 +387,8 @@ button[role="radio"] > span {
 .gp-header__card {
   padding: 18px 24px;
   border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
   background: linear-gradient(
     135deg,
     var(--gp-surface-card, #fffcf7) 0%,
@@ -398,17 +400,22 @@ button[role="radio"] > span {
 
 .gp-header__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px 24px;
+  min-width: 0;
 }
 
 .gp-header__title {
   margin: 0;
-  font-size: 2rem;
-  line-height: 1.1;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.15;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 16rem;
   font-family: var(--gp-font-display, Georgia, serif);
 }
 
@@ -416,8 +423,8 @@ button[role="radio"] > span {
   font-size: 0.84rem;
   color: var(--gp-muted-fg);
   text-align: right;
-  white-space: nowrap;
-  flex-shrink: 0;
+  white-space: normal;
+  flex: 0 1 auto;
 }
 
 .gp-header__links a {
@@ -452,6 +459,8 @@ button[role="radio"] > span {
   grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
   padding: 28px 24px;
   border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
   background: linear-gradient(
     135deg,
     var(--gp-surface-card, #fffcf7) 0%,
@@ -475,10 +484,34 @@ button[role="radio"] > span {
 
 .gp-hero__title {
   margin: 12px 0 8px;
-  font-size: 2rem;
-  line-height: 1.1;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.15;
   font-weight: 700;
+  overflow-wrap: anywhere;
   font-family: var(--gp-font-display, Georgia, serif);
+}
+
+.gp-fluid-svg {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gp-fluid-svg--sm {
+  max-width: 300px;
+}
+
+.gp-fluid-svg--md {
+  max-width: 520px;
+}
+
+.gp-fluid-svg--lg {
+  max-width: 640px;
+}
+
+.gp-fluid-svg--xl {
+  max-width: 760px;
 }
 
 .gp-hero__subtitle {
@@ -515,26 +548,36 @@ button[role="radio"] > span {
   box-shadow: 0 8px 24px rgba(28, 25, 23, 0.08);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
+  .gp-header__card {
+    padding: 14px 16px;
+  }
+
   .gp-header__row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .gp-header__title {
+    flex: 0 1 auto;
   }
 
   .gp-header__links {
     text-align: left !important;
-    white-space: normal !important;
-  }
-
-  .gp-header__title {
-    white-space: normal;
   }
 
   .gp-hero__grid {
     grid-template-columns: 1fr;
   }
 }
+
+/*
+ * Marimo already provides a burger Sheet below Tailwind `lg` (1024px):
+ * `.app-sidebar` is `hidden lg:block`, and a Sheet trigger is `lg:hidden`.
+ * Leave that behavior alone so the built-in burger menu remains usable.
+ */
 
 html[data-theme="dark"] .gp-header,
 html.dark .gp-header,

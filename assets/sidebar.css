@@ -426,6 +426,20 @@ button[role="radio"] > span {
   text-decoration: none;
 }
 
+/* Center the Approach flowchart without shrinking Mermaid's width:100% SVG. */
+.gp-intro-pipeline {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0.75rem 0 1rem;
+}
+
+.gp-intro-pipeline marimo-mermaid {
+  display: block;
+  flex: 0 0 auto;
+  width: min(820px, 100%);
+}
+
 .gp-hero {
   color: var(--gp-ink, #1c1917);
   margin: 0 0 20px;

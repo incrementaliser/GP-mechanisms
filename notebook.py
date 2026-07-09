@@ -112,6 +112,10 @@ def _(mo, show_intro):
   behavioral surprisal alone does not reveal *which internal features* drive the preferred reading.
 - **Approach:** Sparse autoencoders (SAEs) yield monosemantic features; AtP-IG finds the circuit
   for $m = p(\\text{GP}) - p(\\text{non-GP})$; targeted clamping verifies causal role.
+"""
+    )
+    findings = mo.md(
+        """
 - **Findings:** Pythia-70m mixes genuine syntactic detectors with shallow lexical heuristics, and
   keeps **both readings active in parallel**. Gemma-2-2b answers follow-up questions above chance,
   yet reuses almost none of the parse circuit (IoU ≤ 0.2%) — neither repair nor reanalysis.
@@ -152,10 +156,10 @@ flowchart LR
             [
                 hero,
                 tldr,
+                _wrap_with_class(pipeline, "gp-intro-pipeline"),
+                findings,
                 gist,
                 lay_summary,
-                mo.md("### Method in one glance"),
-                pipeline,
             ]
         ),
         "gp-intro-page",

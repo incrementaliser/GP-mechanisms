@@ -1642,11 +1642,6 @@ def _(
     mo.stop(not show_m8)
     _content: list = [
         mo.md("## 8. Outro"),
-        mo.md(
-            """
-### What this notebook recomputed vs. reports
-"""
-        ),
     ]
 
     _content.extend(
@@ -1667,24 +1662,15 @@ def _(
 3. **RQ3 (Gemma-2-2b):** Question-answering circuits share almost no features with parsing
    circuits (IoU ≤ 0.2%) and lean on yes/no heuristics — evidence for neither human-style
    repair nor reanalysis.
-
-*You just reverse-engineered incremental parsing in a 70M-parameter LM — one ambiguous noun at
-a time.*
 """
             ),
             mo.md(
                 """
 ### Where this could go next
 
-- **Edge semantics:** the discovered circuits treat features as independent nodes; formalizing
-  AND/OR interactions between detector families (a limitation the paper flags) would sharpen
-  claims about *how* heuristics and syntax combine.
-- **Scale and training data:** repeat the pipeline on models trained with cognitively plausible
-  data budgets, and on larger models where QA is reliable, to map where heuristic detectors give
-  way to robust syntax.
-- **Close the probe gap:** Figure 5's final-layer collapse leaves the end of the parse pipeline
-  uncertain; better-calibrated structural probes (or unambiguous control prefixes) could resolve
-  whether readings are truly discarded there.
+- **Evaluating Recurrent Models:** The same pipeline can be applied to recurrent models like xLSTMs ([Beck at al. 2025](https://www.alphaxiv.org/abs/2405.04517)) that have shown superior performance comapred to both Transformers and State Space Models across many benchmarks, to study the mechanisms of incremental parsing in these models, and how model compression techniques like pruning and quantisation affect the incremental performance (for Edge AI applications).
+- **Extending Evaluation Pipeline:** A standardised incrementality evaluation pipeline (model in, scores out) can be created to evaluate the incremental performance of other models, which could as well include the diachronic metrics of [Baumann and Schlangen, 2011](https://aclanthology.org/2011.dnd-2.10/) and "Triangular Structures" of [Madureira et al. 2024](https://www.alphaxiv.org/abs/2402.13113). The correlation between these metrics then be studied that in turn could shed light on the possibility of using the diachronic metrics over mechanistic explanations due to simplicity and efficiency.
+- **Guaranteed Circuit Validity:** Current circuit discovery methods are known to not generalise out of distribution robustly. Further work can follow "Certified Circuits" ([Anani et al. 2026](https://www.alphaxiv.org/abs/2602.22968)) to ensure provably stable circuit discovery.
 """
             )
         ]

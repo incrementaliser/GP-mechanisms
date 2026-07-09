@@ -1,4 +1,4 @@
-"""Plotly and HTML visualization helpers for the garden-path marimo notebook."""
+"""Plotly and HTML visualisation helpers for the garden-path marimo notebook."""
 
 from __future__ import annotations
 

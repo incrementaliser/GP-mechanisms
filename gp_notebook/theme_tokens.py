@@ -1,6 +1,6 @@
 """Editable design tokens for the garden-path notebook look and feel.
 
-Change values in ``GP_THEME`` to retune colors and fonts without hunting
+Change values in ``GP_THEME`` to retune colours and fonts without hunting
 through CSS, Plotly charts, or inline SVG/HTML helpers.
 """
 
@@ -20,7 +20,7 @@ GP_THEME: Final[dict[str, str]] = {
         "family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&"
         "family=IBM+Plex+Mono:wght@400;500&display=swap"
     ),
-    # Semantic reading colors
+    # Semantic reading colours
     "gp": "#B42318",
     "gp_soft": "#F9D4CF",
     "non_gp": "#1D4ED8",
@@ -50,7 +50,7 @@ GP_THEME: Final[dict[str, str]] = {
 
 
 def theme_color(key: str, fallback: str = "#78716C") -> str:
-    """Return one color/font token from ``GP_THEME``."""
+    """Return one colour/font token from ``GP_THEME``."""
     return GP_THEME.get(key, fallback)
 
 

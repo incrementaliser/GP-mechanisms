@@ -87,7 +87,7 @@ nll_loss = torch.nn.NLLLoss()
 
 for layer in ['embeds', *range(model.config.num_hidden_layers)]:
 
-    # this optimization loop is directly from Tiwa's code
+    # this optimisation loop is directly from Tiwa's code
     optimizer = torch.optim.Adam([new_activations[layer]], lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.1, patience=scheduler_patience
@@ -112,7 +112,7 @@ for layer in ['embeds', *range(model.config.num_hidden_layers)]:
         if increment_idx == 0:
             initial_loss = loss.clone().detach()
 
-        # optimize representations 
+        # optimise representations 
         loss.backward()
         optimizer.step()
         scheduler.step(loss)
@@ -137,7 +137,7 @@ for layer in ['embeds', *range(model.config.num_hidden_layers)]:
     new_action_distribution = torch.softmax(probes[layer](new_probe_input), dim=-1)
     print(new_action_distribution.mean(0))
 # %%
-# observe how the optimization changed model behavior
+# observe how the optimisation changed model behaviour
 print("Orig:", NP_probs.mean().cpu().item(), Z_probs.mean().cpu().item())
 # skipping embeds because they're annoying
 for layer in range(model.config.num_hidden_layers):

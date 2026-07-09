@@ -48,7 +48,7 @@ def module_nav_full_options() -> dict[str, str]:
 
 
 def initial_theme(app_meta_theme: str, request_theme: str | None = None) -> ThemeMode:
-    """Normalize marimo app-meta or request cookie theme to light or dark."""
+    """Normalise marimo app-meta or request cookie theme to light or dark."""
     if request_theme in ("light", "dark"):
         return request_theme  # type: ignore[return-value]
     return "dark" if app_meta_theme == "dark" else "light"

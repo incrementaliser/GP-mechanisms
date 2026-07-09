@@ -69,7 +69,7 @@ As part of this project, we created the following data files:
 
 - `data_csv/gp_same_len.csv`: An edit of Arehalli et al.'s (2022) dataset containing both ambiguous and unambiguous sentences, all of the same length. Note that our unambiguous sentences are unambiguous because of the verb used not, e.g. because of an added comma.
 - `data_csv/garden_path_readingcomp.csv`: An adaptation of the above dataset containing complete garden path sentences and follow-up questions.
-- `data_csv/garden_path_samelen_readingcomp.csv`: A version of the above dataset containing garden path sentences that each contain the same number of words. This version of the dataset enables us to analyze which sparse features are most influential at specific token positions.
+- `data_csv/garden_path_samelen_readingcomp.csv`: A version of the above dataset containing garden path sentences that each contain the same number of words. This version of the dataset enables us to analyse which sparse features are most influential at specific token positions.
 
 ## Citation
 

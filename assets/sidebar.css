@@ -595,7 +595,7 @@ button[role="radio"] > span {
 /*
  * Marimo already provides a burger Sheet below Tailwind `lg` (1024px):
  * `.app-sidebar` is `hidden lg:block`, and a Sheet trigger is `lg:hidden`.
- * Leave that behavior alone so the built-in burger menu remains usable.
+ * Leave that behaviour alone so the built-in burger menu remains usable.
  */
 
 html[data-theme="dark"] .gp-header,

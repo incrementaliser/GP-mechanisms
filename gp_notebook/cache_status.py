@@ -23,7 +23,7 @@ class CacheSpec:
 
 CACHE_SPECS: tuple[CacheSpec, ...] = (
     CacheSpec("behavioral_summary.parquet", "required", "Figure 2 aggregate"),
-    CacheSpec("behavioral_scored.parquet", "required", "Per-sentence behavioral scores"),
+    CacheSpec("behavioral_scored.parquet", "required", "Per-sentence behavioural scores"),
     CacheSpec("interventions.parquet", "required", "Figure 4 intervention bars"),
     CacheSpec("intervention_sweeps.parquet", "optional", "M4 slider amplitude grid"),
     CacheSpec("prefix_probs_npz.parquet", "optional", "M1 commitment timeline NPZ"),
@@ -66,7 +66,7 @@ def cache_ready_fraction() -> float:
 
 
 def save_cache_manifest() -> Path:
-    """Write cache_manifest.json summarizing asset availability."""
+    """Write cache_manifest.json summarising asset availability."""
     ensure_assets_dir()
     payload = {
         "files": cache_manifest(),
@@ -85,7 +85,7 @@ def cache_status_markdown() -> str:
     fraction = cache_ready_fraction()
     if not missing:
         return (
-            f"**Data status:** {fraction:.0%} of visualization caches loaded. "
+            f"**Data status:** {fraction:.0%} of visualisation caches loaded. "
             "Default mode is fully interactive."
         )
     return (

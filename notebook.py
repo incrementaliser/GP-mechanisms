@@ -15,7 +15,7 @@ with app.setup:
         import torch  # noqa: F401
 
     # === DESIGN TOKENS (edit gp_notebook/theme_tokens.py :: GP_THEME) ===
-    # Colors, fonts, and Google Fonts URL live in one dict so the look can be
+    # Colours, fonts, and Google Fonts URL live in one dict so the look can be
     # retuned without hunting through CSS / Plotly / SVG helpers.
     from gp_notebook.theme_tokens import GP_THEME  # noqa: F401
 
@@ -109,7 +109,7 @@ def _(mo, show_intro):
 ### TL;DR
 
 - **Problem:** Autoregressive LMs handle temporary syntactic ambiguities incrementally, but
-  behavioral surprisal alone does not reveal *which internal features* drive the preferred reading.
+  behavioural surprisal alone does not reveal *which internal features* drive the preferred reading.
 - **Approach:** Sparse autoencoders (SAEs) yield monosemantic features; AtP-IG finds the circuit
   for $m = p(\\text{GP}) - p(\\text{non-GP})$; targeted clamping verifies causal role.
 """
@@ -377,7 +377,7 @@ def _(load_json_cache, mo, show_m0):
 |---------|-----------|
 | **Neuron** | A single unit — often *polysemantic* (fires for unrelated things). |
 | **Feature** | A *monosemantic* direction found via sparse autoencoders (SAEs). |
-| **Circuit** | Minimal subgraph of features that reproduces a behavior. |
+| **Circuit** | Minimal subgraph of features that reproduces a behaviour. |
 | **Ablation** | Clamp a feature to zero and measure the effect — the core causal test. |
 | **AtP-IG** | Gradient-based estimate of each feature's causal contribution, used to find circuit features cheaply. |
 | **Faithfulness** | How well the small circuit alone matches the full model (ideally $\approx 1.0$). |
@@ -638,7 +638,7 @@ def _(
     _content.append(
         mo.callout(
             mo.md(
-                "**Bridge to RQ1.** Behavior alone shows *that* Pythia prefers one continuation; "
+                "**Bridge to RQ1.** Behaviour alone shows *that* Pythia prefers one continuation; "
                 "the next page asks *which features* cause that preference — syntactic detectors, "
                 "shallow heuristics, or both."
             ),
@@ -664,11 +664,11 @@ def _(mo, show_rq1):
     mo.stop(not show_rq1)
     rq1_panel = mo.ui.radio(
         options={
-            "1 · Behavior (Fig 2)": "behavior",
+            "1 · Behaviour (Fig 2)": "behaviour",
             "2 · Circuit (Fig 3)": "circuit",
             "3 · Intervene (Fig 4)": "intervene",
         },
-        value="1 · Behavior (Fig 2)",
+        value="1 · Behaviour (Fig 2)",
         label="RQ1 step",
         inline=True,
     )
@@ -678,7 +678,7 @@ def _(mo, show_rq1):
 @app.cell(hide_code=True)
 def _(behavioral_scored, mo, rq1_panel, show_rq1):
     mo.stop(not show_rq1)
-    show_rq1_behavior = rq1_panel.value == "behavior"
+    show_rq1_behavior = rq1_panel.value == "behaviour"
     show_rq1_circuit = rq1_panel.value == "circuit"
     show_rq1_intervene = rq1_panel.value == "intervene"
     drill_df = None
@@ -818,7 +818,7 @@ def _(
 ):
     mo.stop(not (show_rq1 and show_rq1_behavior))
     _content: list = [
-        mo.md("### Behavior — does Pythia get garden-pathed?"),
+        mo.md("### Behaviour — does Pythia get garden-pathed?"),
         mo.md(
             "Reproduction of the paper's **Figure 2**: mean $m = p(\\text{GP}) - p(\\text{non-GP})$ "
             "per structure and verb type. MV/RR is shown but excluded from the mechanistic "
@@ -829,7 +829,7 @@ def _(
         _content.append(
             mo.callout(
                 mo.md(
-                    "Behavioral caches are missing. Run `uv run python precompute.py` once to "
+                    "Behavioural caches are missing. Run `uv run python precompute.py` once to "
                     "regenerate them from the model."
                 ),
                 kind="warn",
@@ -1752,7 +1752,7 @@ def _(
             ),
             kind="neutral",
         ),
-        mo.md("### How much of the behavior do these circuits capture?"),
+        mo.md("### How much of the behaviour do these circuits capture?"),
         apply_plotly_theme(faithfulness_anchor_figure(), theme),
         mo.md(
             """

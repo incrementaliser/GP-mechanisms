@@ -1,4 +1,4 @@
-"""Behavioral evaluation: p(GP) and p(non-GP) for garden-path sentences."""
+"""Behavioural evaluation: p(GP) and p(non-GP) for garden-path sentences."""
 
 from __future__ import annotations
 

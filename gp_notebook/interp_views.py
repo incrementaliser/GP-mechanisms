@@ -1,4 +1,4 @@
-"""Circuitsvis-backed interactive visualizations for marimo embedding.
+"""Circuitsvis-backed interactive visualisations for marimo embedding.
 
 Circuitsvis output embeds a ``<script type="module">`` that loads its renderer
 from a CDN. Scripts inserted with ``mo.Html`` never execute, so these helpers
@@ -24,7 +24,7 @@ _IFRAME_STYLE = (
 
 
 def _safe_label(label: str) -> str:
-    """Escape and normalize quotes so labels are safe inside notebook HTML wrappers."""
+    """Escape and normalise quotes so labels are safe inside notebook HTML wrappers."""
     return html.escape(label.replace('"', "'"))
 
 
@@ -36,7 +36,7 @@ def colored_token_view(
     negative_color: str | None = "#c0392b",
     positive_color: str | None = "#2980b9",
 ) -> str:
-    """Render tokens colored by scalar values using circuitsvis, returning embeddable HTML."""
+    """Render tokens coloured by scalar values using circuitsvis, returning embeddable HTML."""
     display_tokens = format_bpe_tokens(tokens)
     rendered = str(
         colored_tokens(

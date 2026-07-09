@@ -20,7 +20,7 @@ from gp_notebook.probes import save_probe_cache
 
 
 def save_behavioral_caches(device: torch.device) -> None:
-    """Score all dataset variants and write behavioral summary caches."""
+    """Score all dataset variants and write behavioural summary caches."""
     df = load_gp_dataset()
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME).to(device)
@@ -232,7 +232,7 @@ def main() -> None:
     save_intervention_caches()
     save_intervention_sweeps()
     save_group_effect_caches()
-    print("Computing visualization caches...")
+    print("Computing visualisation caches...")
     save_token_activation_caches()
     save_attention_caches()
     save_attribution_caches(device)

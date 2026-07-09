@@ -83,7 +83,7 @@ def spike_bar_html(
         height = int(8 + 40 * (act / max_act))
         on = act >= threshold
         bg = "#e74c3c" if on else "#aeb6bf"
-        # Labels sit on the page background, so inherit the theme text color.
+        # Labels sit on the page background, so inherit the theme text colour.
         label_style = "font-weight:700;" if on else "opacity:0.65;"
         parts.append(
             f"<div style='text-align:center;min-width:28px;'>"

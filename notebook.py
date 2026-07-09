@@ -1686,18 +1686,7 @@ a time.*
   uncertain; better-calibrated structural probes (or unambiguous control prefixes) could resolve
   whether readings are truly discarded there.
 """
-            ),
-            mo.md(
-                """
----
-
-**Credits.** Paper: [Hanna & Mueller (NAACL 2025)](https://www.alphaxiv.org/abs/2412.05353);
-feature annotations and intervention protocol from the authors'
-[repository](https://github.com/hannamw/GP-mechanisms); sparse autoencoders by Marks et al.
-(2024). Built with marimo, nnsight, circuitsvis, anywidget, and Plotly. Original figures are
-reproduced from the paper's arXiv source for commentary, with attribution.
-"""
-            ),
+            )
         ]
     )
     mo.vstack(_content)

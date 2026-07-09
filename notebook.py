@@ -1645,16 +1645,6 @@ def _(
         mo.md(
             """
 ### What this notebook recomputed vs. reports
-
-- **Recomputed from the model** (cached in `assets/`, regenerable with
-  `uv run python precompute.py`): all 216 behavioral scores (Figure 2), the Figure 4
-  intervention protocol *plus* a full amplitude sweep behind the Module 4 sliders, exact
-  zero-ablation effects for every annotated feature family, SAE token activations, attention
-  patterns, token-level integrated gradients, and per-prefix probabilities.
-- **Paper-reported** (not regenerated: they need licensed treebank data or ~10 GB of Gemma
-  SAEs): the structural-probe curves (Figure 5), Table 3 QA accuracies, circuit IoU, and the
-  faithfulness numbers below.
-- **Schematic:** the parser cartoons and circuit-layout sketch, marked as such where they appear.
 """
         ),
     ]

@@ -1,19 +1,21 @@
 """Circuitsvis-backed interactive visualisations for marimo embedding.
 
 Circuitsvis output embeds a ``<script type="module">`` that loads its renderer
-from a CDN. Scripts inserted with ``mo.Html`` never execute, so these helpers
-must always be displayed through ``mo.iframe`` — the returned HTML therefore
-carries its own white-card styling that works on both notebook themes.
+from a CDN. Scripts inserted with bare ``mo.Html`` never execute, so callers
+should wrap the returned HTML with :func:`embed_view_html` (a data-URI iframe).
 """
 
 from __future__ import annotations
 
+import base64
 import html
 
+import marimo as mo
 import numpy as np
 import torch
 from circuitsvis.attention import attention_patterns
 from circuitsvis.tokens import colored_tokens, colored_tokens_multi
+from marimo._output.hypertext import Html
 
 from gp_notebook.token_display import format_bpe_tokens
 
@@ -26,6 +28,17 @@ _IFRAME_STYLE = (
 def _safe_label(label: str) -> str:
     """Escape and normalise quotes so labels are safe inside notebook HTML wrappers."""
     return html.escape(label.replace('"', "'"))
+
+
+def embed_view_html(inner_html: str, *, height: str = "220px") -> Html:
+    """Embed circuitsvis HTML in a data-URI iframe via ``mo.Html`` (no virtual files)."""
+    payload = base64.b64encode(inner_html.encode("utf-8")).decode("ascii")
+    return mo.Html(
+        f'<iframe src="data:text/html;base64,{payload}" '
+        f'style="width:100%;height:{height};border:0;border-radius:8px;'
+        f'background:#fff;" loading="lazy" '
+        f'sandbox="allow-scripts allow-same-origin"></iframe>'
+    )
 
 
 def colored_token_view(

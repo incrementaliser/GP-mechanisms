@@ -9,47 +9,48 @@ from __future__ import annotations
 from typing import Final
 
 # === DESIGN TOKENS (edit me) ===
+# Ink-and-signal: cool paper, charcoal dark, vermillion GP vs slate-cyan non-GP.
 GP_THEME: Final[dict[str, str]] = {
     # Typography — loaded via Google Fonts in assets/theme-init.html
-    "font_display": '"Fraunces", "Iowan Old Style", Georgia, serif',
-    "font_body": '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif',
-    "font_mono": '"IBM Plex Mono", ui-monospace, monospace',
+    "font_display": '"Newsreader", "Iowan Old Style", Georgia, serif',
+    "font_body": '"IBM Plex Sans", system-ui, sans-serif',
+    "font_mono": '"JetBrains Mono", ui-monospace, monospace',
     "google_fonts_href": (
         "https://fonts.googleapis.com/css2?"
-        "family=Fraunces:opsz,wght@9..144,500;9..144,700&"
-        "family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&"
-        "family=IBM+Plex+Mono:wght@400;500&display=swap"
+        "family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,700;1,6..72,500&"
+        "family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&"
+        "family=JetBrains+Mono:wght@400;500&display=swap"
     ),
-    # Semantic reading colours
-    "gp": "#B42318",
-    "gp_soft": "#F9D4CF",
-    "non_gp": "#1D4ED8",
-    "non_gp_soft": "#DBEAFE",
-    "neutral": "#78716C",
-    "highlight": "#F59E0B",
+    # Semantic reading colours (the brand)
+    "gp": "#C23B22",
+    "gp_soft": "#F8D6CF",
+    "non_gp": "#0E7490",
+    "non_gp_soft": "#CFF4FC",
+    "neutral": "#64748B",
+    "highlight": "#D97706",
     "highlight_soft": "#FDE68A",
-    # Light chrome
+    # Light chrome — cool paper white, not warm cream
     "accent": "#0F766E",
     "accent_soft": "#CCFBF1",
-    "surface": "#F4F1EB",
-    "surface_card": "#FFFcf7",
-    "ink": "#1C1917",
-    "muted": "#57534E",
-    "border": "#E7E5E4",
-    # Dark chrome
+    "surface": "#F4F7FA",
+    "surface_card": "#FFFFFF",
+    "ink": "#0F172A",
+    "muted": "#475569",
+    "border": "#CBD5E1",
+    # Dark chrome — charcoal
     "accent_dark": "#2DD4BF",
     "accent_soft_dark": "#134E4A",
-    "surface_dark": "#1C1917",
-    "surface_card_dark": "#292524",
-    "ink_dark": "#F5F5F4",
-    "muted_dark": "#A8A29E",
-    "border_dark": "#44403C",
+    "surface_dark": "#0B1220",
+    "surface_card_dark": "#162032",
+    "ink_dark": "#F1F5F9",
+    "muted_dark": "#94A3B8",
+    "border_dark": "#334155",
     "gp_dark": "#F87171",
-    "non_gp_dark": "#93C5FD",
+    "non_gp_dark": "#22D3EE",
 }
 
 
-def theme_color(key: str, fallback: str = "#78716C") -> str:
+def theme_color(key: str, fallback: str = "#64748B") -> str:
     """Return one colour/font token from ``GP_THEME``."""
     return GP_THEME.get(key, fallback)
 
@@ -93,7 +94,9 @@ body[data-theme="dark"],
 body.dark,
 body.dark-theme {{
   --gp-color-gp: {t["gp_dark"]};
+  --gp-color-gp-soft: #7F1D1D;
   --gp-color-non-gp: {t["non_gp_dark"]};
+  --gp-color-non-gp-soft: #164E63;
   --gp-accent: {t["accent_dark"]};
   --gp-accent-soft: {t["accent_soft_dark"]};
   --gp-surface: {t["surface_dark"]};

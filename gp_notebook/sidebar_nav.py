@@ -29,7 +29,7 @@ SECTIONS: Final[tuple[SectionSpec, ...]] = (
     SectionSpec("rq1", "2", "2 — Syntax or heuristics? (RQ1)"),
     SectionSpec("m5", "3", "3 — Multiple readings? (RQ2)"),
     SectionSpec("m6", "4", "4 — Repair vs reanalysis (RQ3)"),
-    SectionSpec("m7", "5", "5 — Your garden-path sentence"),
+    SectionSpec("m7", "5", "5 — Optional: your sentence"),
     SectionSpec("m8", "6", "6 — Outro"),
 )
 

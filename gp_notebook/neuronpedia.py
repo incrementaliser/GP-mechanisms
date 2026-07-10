@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import html
 from typing import Iterable
-from urllib.parse import quote
 
 import pandas as pd
 
@@ -17,7 +16,6 @@ MODEL_SLUG = "pythia-70m-deduped"
 def feature_to_neuronpedia_url(feature_id: str) -> str:
     """Build a Neuronpedia feature page URL from a submodule/index id like resid_4/14907."""
     submodule, idx = feature_id.split("/")
-    layer_part = submodule.replace("embed", "0-embed").replace("_", "-")
     if submodule == "embed":
         layer_part = "0-embed"
     elif submodule.startswith("resid_"):
@@ -26,28 +24,43 @@ def feature_to_neuronpedia_url(feature_id: str) -> str:
         layer_part = f"{submodule.split('_')[1]}-att-sm"
     elif submodule.startswith("mlp_"):
         layer_part = f"{submodule.split('_')[1]}-mlp-sm"
+    else:
+        layer_part = submodule.replace("_", "-")
     return f"{NEURONPEDIA_BASE}/{layer_part}/{idx}"
 
 
 def feature_card_html(row: pd.Series) -> str:
-    """Render one annotated feature as a Neuronpedia-linked card."""
+    """Render one annotated feature as a theme-aware Neuronpedia outbound card."""
     feature_id = str(row.get("Feature", row.get("feature", "")))
     category = html.escape(str(row.get("Category", row.get("category", ""))))
     annotation = html.escape(str(row.get("Annotation", row.get("annotation", ""))))
     layer = row.get("layer", "")
     url = feature_to_neuronpedia_url(feature_id)
     side = row.get("reading_side", "other")
-    border = "#c0392b" if side == "pro_gp" else "#2980b9" if side == "anti_gp" else "#95a5a6"
+    if side == "pro_gp":
+        border = "var(--gp-color-gp)"
+        soft = "var(--gp-color-gp-soft)"
+    elif side == "anti_gp":
+        border = "var(--gp-color-non-gp)"
+        soft = "var(--gp-color-non-gp-soft)"
+    else:
+        border = "var(--gp-border)"
+        soft = "var(--gp-surface)"
     return f"""
     <div style="border:2px solid {border}; border-radius:10px; padding:12px 14px;
-                margin:8px 0; background:#fafafa; color:#1c2833;
-                font-family:system-ui,sans-serif;">
-      <div style="font-weight:700; font-size:0.95rem;">{html.escape(feature_id)}</div>
-      <div style="color:#555; font-size:0.85rem; margin:4px 0;">Layer {layer} · {category}</div>
-      <div style="font-size:0.9rem; margin-bottom:8px;">{annotation}</div>
-      <a href="{url}" target="_blank" rel="noopener"
-         style="color:#2563eb; font-weight:600; text-decoration:none;">
-        Open in Neuronpedia ↗
+                margin:8px 0; background:color-mix(in srgb, {soft} 45%, var(--gp-surface-card));
+                color:var(--gp-ink); font-family:var(--gp-font-body);">
+      <div style="font-weight:700; font-size:0.95rem; font-family:var(--gp-font-mono);">
+        {html.escape(feature_id)}
+      </div>
+      <div style="color:var(--gp-muted); font-size:0.85rem; margin:4px 0;">
+        Layer {html.escape(str(layer))} · {category}
+      </div>
+      <div style="font-size:0.9rem; margin-bottom:10px;">{annotation}</div>
+      <a href="{html.escape(url, quote=True)}" target="_blank" rel="noopener"
+         style="color:var(--gp-accent); font-weight:700; text-decoration:none;
+                border-bottom:1px solid var(--gp-accent);">
+        Open in Neuronpedia atlas (new tab) ↗
       </a>
     </div>
     """
@@ -56,9 +69,18 @@ def feature_card_html(row: pd.Series) -> str:
 def feature_gallery_html(features: pd.DataFrame, *, max_cards: int = 6) -> str:
     """Render a grid of feature cards for the circuit explorer."""
     cards = [feature_card_html(row) for _, row in features.head(max_cards).iterrows()]
+    header = (
+        "<p style='margin:0 0 8px;color:var(--gp-muted);font-size:0.88rem;"
+        "font-family:var(--gp-font-body);'>"
+        "Outbound links to Neuronpedia’s feature atlas — activations below stay in-notebook."
+        "</p>"
+    )
     return (
-        "<div style='display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));"
-        " gap:8px;'>" + "".join(cards) + "</div>"
+        header
+        + "<div style='display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));"
+        " gap:8px;'>"
+        + "".join(cards)
+        + "</div>"
     )
 
 
@@ -76,14 +98,18 @@ def spike_bar_html(
     max_act = max(max_act, 1e-6)
     parts: list[str] = []
     if label:
-        parts.append(f"<div style='font-weight:600;margin-bottom:6px;'>{html.escape(label)}</div>")
-    parts.append("<div style='display:flex;flex-wrap:wrap;gap:4px;font-family:monospace;'>")
+        parts.append(
+            f"<div style='font-weight:600;margin-bottom:6px;color:var(--gp-ink);"
+            f"font-family:var(--gp-font-body);'>{html.escape(label)}</div>"
+        )
+    parts.append(
+        "<div style='display:flex;flex-wrap:wrap;gap:4px;font-family:var(--gp-font-mono);'>"
+    )
     for tok, act in zip(tok_list, act_list):
         safe = html.escape(tok)
         height = int(8 + 40 * (act / max_act))
         on = act >= threshold
-        bg = "#e74c3c" if on else "#aeb6bf"
-        # Labels sit on the page background, so inherit the theme text colour.
+        bg = "var(--gp-color-gp)" if on else "var(--gp-border)"
         label_style = "font-weight:700;" if on else "opacity:0.65;"
         parts.append(
             f"<div style='text-align:center;min-width:28px;'>"

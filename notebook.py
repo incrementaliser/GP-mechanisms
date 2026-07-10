@@ -82,7 +82,10 @@ def _(get_theme, mo, set_theme):
 def _(mo):
     from gp_notebook.sidebar_nav import MODULE_NAV_DEFAULT_KEY, module_nav_full_options
 
-    live_switch = mo.ui.switch(label="Live mode (model + SAEs)", value=False)
+    live_switch = mo.ui.switch(
+        label="Live mode — load Pythia + SAEs for GPU runs",
+        value=False,
+    )
     module_nav = mo.ui.radio(
         options=module_nav_full_options(),
         value=MODULE_NAV_DEFAULT_KEY,
@@ -100,8 +103,17 @@ def _(module_nav):
 @app.cell(hide_code=True)
 def _(mo, show_intro):
     mo.stop(not show_intro)
+    import importlib as _importlib
+
+    import gp_notebook.theme_tokens as _theme_tokens
+    import gp_notebook.viz as _viz
+
     from gp_notebook.sidebar_nav import wrap_with_class as _wrap_with_class
-    from gp_notebook.viz import notebook_hero_html as _hero_html
+
+    # Reload so intro picks up hero helpers even if an older viz module is cached.
+    _importlib.reload(_theme_tokens)
+    _importlib.reload(_viz)
+    _hero_html = _viz.notebook_hero_html
 
     hero = mo.Html(_hero_html())
     tldr = mo.md(
@@ -124,7 +136,7 @@ def _(mo, show_intro):
     gist = mo.callout(
         mo.md(
             """
-**Why incremental processing matters?** Humans process dialogue incrementally, which means that we understand language word by word as it is generated. This incremental processing also gives use the ability to predict the speaker's intent and revision of our interpretation of what is being said on the fly if necessary. This feature can make conversational AI, and as a result verbal communication with robots, more human-like and robust to phenonmena like pauses, interruptions, corrections, etc. that make current dialogue systems brittle. In modern AI agents, it can allow for real-time tool calling before an instruction is finished, and in a healthcare setting, it can provide with a less frustrating communication with invidivuals with dementia or other cognitive impairments.
+**Why incremental processing matters?** Humans process dialogue incrementally, which means that we understand language word by word as it is generated. This incremental processing also gives us the ability to predict the speaker's intent and revision of our interpretation of what is being said on the fly if necessary. This feature can make conversational AI, and as a result verbal communication with robots, more human-like and robust to phenomena like pauses, interruptions, corrections, etc. that make current dialogue systems brittle. In modern AI agents, it can allow for real-time tool calling before an instruction is finished, and in a healthcare setting, it can provide with a less frustrating communication with individuals with dementia or other cognitive impairments.
 """
         ),
         kind="neutral",
@@ -216,6 +228,10 @@ def _(live_switch, module_nav, mo, theme_toggle):
                                 wrap_with_class(module_nav, "gp-sidebar-nav"),
                                 mo.md("### Execution"),
                                 live_switch,
+                                mo.md(
+                                    "_When on, RQ1 live re-runs and §5 custom sentences "
+                                    "load Pythia (+ SAEs for clamps). Off = cached figures._"
+                                ),
                             ]
                         ),
                         "gp-sidebar-main",
@@ -249,6 +265,7 @@ def _(mo, show_intro):
     from gp_notebook.interp_views import (
         attention_view,
         colored_token_view,
+        embed_view_html,
         multi_feature_token_view,
     )
     from gp_notebook.interventions import run_intervention_suite, saes_available
@@ -262,15 +279,15 @@ def _(mo, show_intro):
     from gp_notebook.probes import load_probe_cache
     from gp_notebook.runtime import get_hf_model, timed_call
     from gp_notebook.sae_fetch import download_saes, missing_sae_dirs
-    import importlib
+    import importlib as _importlib
 
     import gp_notebook.theme_tokens as _theme_tokens
     import gp_notebook.viz as _viz
 
     # Marimo keeps sibling packages in sys.modules across edits; reload so new
     # helpers (sae_pipeline_svg, serial_parallel_svgs, …) are always visible.
-    importlib.reload(_theme_tokens)
-    importlib.reload(_viz)
+    _importlib.reload(_theme_tokens)
+    _importlib.reload(_viz)
 
     theme_color = _theme_tokens.theme_color
     activation_heatmap = _viz.activation_heatmap
@@ -312,6 +329,7 @@ def _(mo, show_intro):
         circuit_svg,
         colored_token_view,
         download_saes,
+        embed_view_html,
         enrich_feature_table,
         faithfulness_anchor_figure,
         feature_gallery_html,
@@ -368,10 +386,9 @@ def _(load_json_cache, mo, show_m0):
         r"""
 ## 0. Primer
 
-### What is mechanistic interpretability?
-
-**Mechanistic interpretability** aims to reverse-engineer what neural networks
-*actually compute*, not just what they get right.
+**Mechanistic interpretability** reverse-engineers what a network *computes*, not only
+whether its predictions match a corpus. For temporary syntactic ambiguity that means
+going past surprisal to the features that tip $m = p(\mathrm{GP}) - p(\mathrm{non\textrm{-}GP})$.
 
 | Concept | One-liner |
 |---------|-----------|
@@ -379,10 +396,11 @@ def _(load_json_cache, mo, show_m0):
 | **Feature** | A *monosemantic* direction found via sparse autoencoders (SAEs). |
 | **Circuit** | Minimal subgraph of features that reproduces a behaviour. |
 | **Ablation** | Clamp a feature to zero and measure the effect — the core causal test. |
-| **AtP-IG** | Gradient-based estimate of each feature's causal contribution, used to find circuit features cheaply. |
+| **AtP-IG** | Gradient estimate of each feature's contribution; used to shortlist the circuit. |
 | **Faithfulness** | How well the small circuit alone matches the full model (ideally $\approx 1.0$). |
 
-We apply these tools to **garden-path sentences** — inputs with two competing syntactic readings.
+Garden-path sentences are the stimulus class: one prefix, two legitimate parses, later
+disambiguation.
 """
     )
     glossary = mo.accordion(
@@ -439,8 +457,8 @@ def _(load_parquet_cache, mo, np, sae_pipeline_svg, show_m0, sparsity, spike_bar
         sparsity,
         mo.md(
             f"Illustration with random numbers: **{active}** of 32 features stay active at "
-            f"threshold {sparsity.value:.2f} — sparsity is what makes individual features "
-            "interpretable."
+            f"threshold {sparsity.value:.2f}. **What to notice:** raising the threshold "
+            "thins the code — sparsity is what makes individual features interpretable."
         ),
     ]
     _tok_act = load_parquet_cache("token_activations_npz.parquet")
@@ -466,9 +484,15 @@ def _(load_parquet_cache, mo, np, sae_pipeline_svg, show_m0, sparsity, spike_bar
 
 
 @app.cell(hide_code=True)
-def _(attn_cache, attention_view, layer_select, mo, np, show_m0):
+def _(attn_cache, attention_view, embed_view_html, layer_select, mo, np, show_m0):
     mo.stop(not show_m0)
-    _content = [mo.md("### Attention patterns")]
+    _content = [
+        mo.md("### Attention patterns"),
+        mo.md(
+            "Change the layer to scan heads. **What to notice:** early layers often "
+            "look local; later layers route more selectively into the ambiguous noun."
+        ),
+    ]
     _attn_panel = mo.md("_Attention cache not loaded. Run `uv run python precompute.py`._")
     if attn_cache is not None and layer_select is not None:
         layer_idx = layer_select.value
@@ -478,7 +502,7 @@ def _(attn_cache, attention_view, layer_select, mo, np, show_m0):
         _content.append(layer_select)
         _attn_panel = mo.vstack([
             mo.md(f"**Layer {layer_idx}** — {attn_data.shape[0]} heads"),
-            mo.iframe(attn_html),
+            embed_view_html(attn_html),
         ])
     _content.append(_attn_panel)
     mo.vstack(_content)
@@ -543,6 +567,7 @@ def _(
     apply_plotly_theme,
     attention_to_last_token_scores,
     colored_token_view,
+    embed_view_html,
     gp_df,
     load_json_cache,
     mo,
@@ -578,12 +603,17 @@ def _(
     _content = [
         mo.md("## 1. Feel the garden path"),
         mo.md(
-            "The stimuli are an adaptation of Arehalli et al. (2022), forced to equal token "
-            "length so feature importance can be compared at fixed positions. Only the verb "
-            "changes: *ambiguous* licenses both readings, *GP-forcing* makes the garden-path "
-            "reading correct, and *non-GP* blocks it."
+            "Temporary syntactic ambiguity is incremental: each new token can tip "
+            "$m = p(\mathrm{GP}) - p(\mathrm{non\textrm{-}GP})$ before the sentence ends. "
+            "The stimuli adapt Arehalli et al. (2022) to equal token length so later "
+            "feature analyses line up at fixed positions. Only the verb changes — "
+            "*ambiguous* licenses both readings; *GP-forcing* / *non-GP* collapse the fork."
         ),
         mo.hstack([structure, verb_type], justify="start", gap=1.5, wrap=True),
+        mo.md(
+            "_Ambiguous + scrubber:_ drag tokens left to right and watch both continuation "
+            "probabilities update. Other verb types show the forced reading as static tokens."
+        ),
     ]
 
     if verb_type.value == "ambiguous" and scrubber is not None:
@@ -624,7 +654,7 @@ def _(
         attn_to_last = attention_to_last_token_scores(layer0, len(tok_strs))
         _content.extend([
             mo.md("### Attention at the ambiguous noun (layer 0, mean over heads)"),
-            mo.iframe(
+            embed_view_html(
                 colored_token_view(
                     tok_strs,
                     attn_to_last,
@@ -636,13 +666,10 @@ def _(
         ])
 
     _content.append(
-        mo.callout(
-            mo.md(
-                "**Bridge to RQ1.** Behaviour alone shows *that* Pythia prefers one continuation; "
-                "the next page asks *which features* cause that preference — syntactic detectors, "
-                "shallow heuristics, or both."
-            ),
-            kind="info",
+        mo.md(
+            "Behaviour alone shows *that* Pythia prefers one continuation. The next section "
+            "asks *which features* cause that preference — syntactic detectors, shallow "
+            "heuristics, or both."
         )
     )
     mo.vstack(_content)
@@ -778,19 +805,13 @@ def _(mo, rq1_panel, show_rq1):
     mo.vstack(
         [
             mo.md("## 2. RQ1 — Do LMs use syntactic features or shallow heuristics?"),
-            mo.callout(
-                mo.md(
-                    "**Gist.** Many high-importance features are interpretable and syntax-related "
-                    "(subjects, objects, clause ends), yet word-level detectors and uninterpretable "
-                    "features also move $m$. Causal clamps on the syntactic groups flip the preferred "
-                    "reading; random controls do not."
-                ),
-                kind="neutral",
-            ),
             mo.md(
-                "Walk the paper's RQ1 arc on one page: measure garden-path preferences "
-                "(Fig 2), inspect the annotated circuit (Fig 3), then clamp features to flip "
-                "the reading (Fig 4)."
+                "Many high-importance features are interpretable and syntax-related "
+                "(subjects, objects, clause ends), yet word-level detectors and uninterpretable "
+                "features also move $m$. Causal clamps on the syntactic groups flip the preferred "
+                "reading; random controls do not. Walk the paper's RQ1 arc: measure preferences "
+                "(Fig 2), inspect the annotated circuit (Fig 3), then clamp features (Fig 4) — "
+                "the same Locate → Annotate → Intervene story as Figure 1."
             ),
             rq1_panel,
         ]
@@ -805,6 +826,7 @@ def _(
     behavioral_figure,
     behavioral_summary,
     colored_token_view,
+    embed_view_html,
     drill_df,
     drill_table,
     load_json_cache,
@@ -820,9 +842,11 @@ def _(
     _content: list = [
         mo.md("### Behaviour — does Pythia get garden-pathed?"),
         mo.md(
-            "Reproduction of the paper's **Figure 2**: mean $m = p(\\text{GP}) - p(\\text{non-GP})$ "
-            "per structure and verb type. MV/RR is shown but excluded from the mechanistic "
-            "analyses because Pythia barely garden-paths on it (paper §4.1)."
+            "Reproduction of the paper's **Figure 2**: mean "
+            "$m = p(\\mathrm{GP}) - p(\\mathrm{non\\textrm{-}GP})$ "
+            "per structure and verb type. Select a row to inspect one ambiguous item. "
+            "MV/RR appears in the chart but is dropped from later analyses because Pythia "
+            "barely garden-paths on it (paper §4.1)."
         ),
     ]
     if behavioral_summary is None or drill_table is None:
@@ -884,7 +908,7 @@ def _(
         attr_cache = load_json_cache(f"attributions_{cond_key}.json")
         if attr_cache is not None:
             _content.append(
-                mo.iframe(
+                embed_view_html(
                     colored_token_view(
                         attr_cache["tokens"],
                         attr_cache["scores"],
@@ -992,7 +1016,7 @@ def _(
         mo.md(
             "AtP-IG keeps features with $\\hat{\\mathrm{IE}} > 0.1$; the authors then hand-annotate "
             "each one. Lower layers are mostly word detectors; upper layers encode subjects, "
-            "objects, and clause boundaries. Red = pro-GP, blue = anti-GP."
+            "objects, and clause boundaries. Filters and the layer slider change which nodes appear — red = pro-GP, blue = anti-GP. Pick a feature for in-notebook spike bars; Neuronpedia links open the external atlas."
         ),
         mo.hstack(
             [circuit_condition, category_filter, layer_slider, feature_pick],
@@ -1025,12 +1049,14 @@ def _(
     apply_plotly_theme,
     clause_slider,
     colored_token_view,
+    embed_view_html,
     download_saes,
     gp_df,
     intervention_sweeps,
     interventions_df,
     live_mode_available,
     live_run,
+    live_switch,
     load_parquet_cache,
     lookup_sweep_intervention,
     mo,
@@ -1125,7 +1151,16 @@ def _(
         )
 
     if live_run.value and preset.value in {"custom", "syntactic"}:
-        if saes_available():
+        if not live_switch.value:
+            mo.output.append(
+                mo.callout(
+                    mo.md(
+                        "Enable **Live mode** in the sidebar before re-running on the model."
+                    ),
+                    kind="warn",
+                )
+            )
+        elif saes_available():
             try:
                 result = timed_call(
                     "intervention",
@@ -1228,7 +1263,7 @@ def _(
             _feat = _side_data["feature"].iloc[0]
             _fd = _side_data[_side_data["feature"] == _feat].sort_values("position")
             feat_panels.append(
-                mo.iframe(
+                embed_view_html(
                     colored_token_view(
                         _fd["token"].tolist(),
                         _fd["activation"].tolist(),
@@ -1245,20 +1280,31 @@ def _(
         else "No GPU detected — live runs take roughly 15–60 s per setting on CPU"
     )
 
+    _source_note = (
+        "Showing **cached** intervention results for this preset "
+        "(precomputed over all 24 sentences)."
+        if result is not None and not (live_run.value and live_switch.value)
+        else (
+            "Showing a **live** model run for this setting."
+            if result is not None and live_run.value and live_switch.value
+            else ""
+        )
+    )
     _content = [
         mo.md("### Intervene — flip the model's reading"),
         mo.md(
             "The paper's causal test (Figure 4): clamp annotated syntactic features and the "
             "preferred reading flips; clamp the same number of *random* features and nothing "
-            "happens. Sliders move through a grid of **real intervention runs** (all 24 "
-            "sentences per grid point)."
+            "happens. Presets and sliders index a grid of **real intervention runs** "
+            "(all 24 sentences per grid point)."
         ),
         mo.md(_protocol_note),
         mo.md(f"**Example sentence:** _{example}_"),
         mo.hstack([sandbox_condition, preset], justify="start", gap=1.5, wrap=True),
         mo.hstack(_relevant_sliders, justify="start", gap=1.5, wrap=True)
         if preset.value == "custom"
-        else mo.md(""),
+        else mo.md("_Preset locked — switch to **Custom sliders** to edit amplitudes._"),
+        mo.md(f"_{_source_note}_") if _source_note else mo.md(""),
         result_panel,
     ]
     if sweep_fig is not None:
@@ -1276,7 +1322,13 @@ def _(
                 ),
             ]
         )
-    _content.append(mo.md(f"### Verify live · {_live_hint}"))
+    _content.append(
+        mo.md(
+            f"### Verify live · {_live_hint}  \n"
+            "Requires **Live mode** (sidebar) and SAE checkpoints. "
+            "Cached tug-of-war above updates immediately when you change presets."
+        )
+    )
     if sae_download is not None:
         _content.append(sae_download)
     if _sae_note is not None:
@@ -1317,6 +1369,7 @@ def _(
     apply_plotly_theme,
     load_parquet_cache,
     mo,
+    embed_view_html,
     multi_feature_token_view,
     np,
     paper_figure_html,
@@ -1333,19 +1386,12 @@ def _(
 
     _content = [
         mo.md("## 3. One or many readings? (RQ2)"),
-        mo.callout(
-            mo.md(
-                "**Gist.** On ambiguous prefixes, pro-GP and anti-GP syntactic features both "
-                "fire (mean activations 0.27–0.41; >50% of each group active). Structural probes "
-                "agree: LEFT-ARC and GEN both keep non-trivial probability — parallel maintenance, "
-                "not a single committed parse."
-            ),
-            kind="neutral",
-        ),
         mo.md(
-            "Does the model commit to one reading, or keep both? The paper checks annotated "
-            "feature activations on ambiguous inputs and reads parse distributions out of "
-            "hidden states with MLP action probes."
+            "Does the model commit to one reading, or keep both? On ambiguous prefixes, "
+            "pro-GP and anti-GP syntactic features both fire (mean activations 0.27–0.41; "
+            ">50% of each group active). Structural probes agree: LEFT-ARC and GEN both keep "
+            "non-trivial probability — parallel maintenance, not a single committed parse. "
+            "Change the structure below; the heatmap, probe plot, and token view update together."
         ),
         rq2_condition,
     ]
@@ -1384,6 +1430,10 @@ def _(
                 gap=1.5,
                 wrap=True,
             ),
+            mo.md(
+                "_Read this picture:_ a serial parser would blank one camp; the paper's "
+                "measurements look like the right panel — both camps stay lit on the same prefix."
+            ),
         ]
     )
 
@@ -1403,7 +1453,7 @@ def _(
             _content.extend(
                 [
                     mo.md("### Both camps, token by token"),
-                    mo.iframe(
+                    embed_view_html(
                         multi_feature_token_view(
                             tokens[:n],
                             mat,
@@ -1457,54 +1507,43 @@ def _(
     gp = theme_color("gp")
     ink = theme_color("ink")
     overlap_svg = f"""
-    <svg class="gp-fluid-svg gp-fluid-svg--md" viewBox="0 0 520 160" width="100%" height="auto"
+    <svg class="gp-fluid-svg gp-fluid-svg--md gp-iou-venn" viewBox="0 0 520 160" width="100%" height="auto"
          xmlns="http://www.w3.org/2000/svg" role="img"
          aria-label="Near-zero overlap between parse and GPRC circuits">
       <circle cx="150" cy="80" r="60" fill="{gp_soft}" opacity="0.9"/>
       <circle cx="280" cy="80" r="60" fill="{non_gp_soft}" opacity="0.9"/>
       <text x="85" y="85" font-size="12" fill="{ink}">GP circuit C₁</text>
       <text x="295" y="85" font-size="12" fill="{ink}">GPRC C₂</text>
-      <text x="200" y="85" font-size="11" fill="{gp}" font-weight="700">IoU ≈ {iou:.1%}</text>
+      <text class="gp-iou-label" x="200" y="85" font-size="11" fill="{gp}" font-weight="700">IoU ≈ {iou:.1%}</text>
     </svg>
     """
     mo.vstack([
         mo.md("## 4. Repair vs reanalysis? (RQ3)"),
-        mo.callout(
-            mo.md(
-                "**Model switch:** this section is about **Gemma-2-2b**. Pythia-70m answers "
-                "garden-path comprehension questions at chance (50%, Table 3), so the paper can "
-                "only study *question answering about* garden paths in the larger model."
-            ),
-            kind="info",
-        ),
-        mo.callout(
-            mo.md(
-                "**Gist.** After disambiguation, Gemma's QA circuit shares almost no features "
-                "with the parse circuit (IoU ≤ 0.2%) and leans on shallow yes/no heuristics — "
-                "evidence for **neither** human-style repair nor reanalysis."
-            ),
-            kind="neutral",
+        mo.md(
+            "This section switches models to **Gemma-2-2b**. Pythia-70m answers garden-path "
+            "comprehension at chance (50%, Table 3), so the paper can only study *question "
+            "answering about* garden paths in the larger model."
         ),
         mo.md(
-            "Operationally: *repair* would reuse reading-specific syntactic features after the "
-            "disambiguating token; *reanalysis* would rebuild from reading-agnostic features. "
-            "The paper compares the GPRC answering circuit to the initial parse circuit."
+            "Operationally: *repair* would reuse reading-specific syntactic features after "
+            "disambiguation; *reanalysis* would rebuild from reading-agnostic structure. "
+            "After disambiguation, Gemma's QA circuit shares almost no features with the parse "
+            "circuit (IoU ≤ 0.2%) and leans on shallow yes/no heuristics — evidence for "
+            "**neither** repair nor reanalysis. Change the structure to swap sample questions; "
+            "the IoU figure updates with the paper-reported overlap for that condition."
         ),
         qa_table,
         mo.Html(overlap_svg),
-        mo.md("### Sample GPRC questions (from the paper's dataset, shipped in this repo)"),
+        mo.md(
+            "_Near-zero overlap:_ comprehension is a separate, heuristic pathway — not a "
+            "continuation of the syntactic circuit that set the preferred reading."
+        ),
+        mo.md("### Sample GPRC questions (paper dataset, shipped in this repo)"),
         gprc_condition,
         mo.ui.table(
             samples[
                 ["condition", "Sentence_GP", "Comp_Question_Yes", "Comp_Question_No"]
             ]
-        ),
-        mo.callout(
-            mo.md(
-                "Comprehension here behaves like a separate, heuristic pathway — not a "
-                "continuation of the syntactic circuit that set the preferred reading."
-            ),
-            kind="warn",
         ),
     ])
     return
@@ -1560,6 +1599,7 @@ def _(gp_df, mo, show_m7):
 def _(
     behavioral_scored,
     colored_token_view,
+    embed_view_html,
     custom_condition,
     custom_sentence,
     example_lookup,
@@ -1690,18 +1730,24 @@ def _(
         )
     )
 
+    _prereq = (
+        "Live mode is **on** — scoring hits the model; causal flip also needs SAE checkpoints."
+        if live_switch.value
+        else (
+            "Live mode is **off** — curated examples use caches only. "
+            "Turn on **Live mode** (sidebar) for custom text and causal flips; "
+            "download SAEs under RQ1 → Intervene if clamps are needed."
+        )
+    )
     _content = [
-        mo.md("## 5. Build your own garden-path sentence"),
-        mo.callout(
-            mo.md(
-                "**Extension.** Score novel prefixes with $m = p(\\text{GP}) - p(\\text{non-GP})$ "
-                "and optionally clamp the same syntactic feature groups used in RQ1 — a direct "
-                "check that the paper's causal story transfers beyond the curated set."
-            ),
-            kind="neutral",
-        ),
+        mo.md("## 5. Optional extension — your garden-path sentence"),
         mo.md(
-            "Curated examples work instantly from caches; custom text runs the model live. "
+            "The paper's claims do not require this page. Use it only if you want to probe "
+            "whether the same $m$ score and syntactic clamps transfer beyond the curated set."
+        ),
+        mo.md(_prereq),
+        mo.md(
+            "Curated examples work instantly from caches; custom text needs Live mode. "
             + _live_note
         ),
         example_pick,
@@ -1714,7 +1760,7 @@ def _(
     if tops_df is not None:
         _content.append(mo.ui.table(tops_df))
     if attr_html:
-        _content.append(mo.iframe(attr_html, height="150px"))
+        _content.append(embed_view_html(attr_html, height="150px"))
     if intervention_result:
         _content.append(mo.Html(
             tug_of_war_html(intervention_result["mean_p_gp"], intervention_result["mean_p_non_gp"])
@@ -1744,13 +1790,10 @@ def _(
     mo.stop(not show_m8)
     _content: list = [
         mo.md("## 6. Outro"),
-        mo.callout(
-            mo.md(
-                "**Gist, restated.** Sparse feature circuits show that incremental garden-path "
-                "preferences in Pythia mix syntax with heuristics and keep both parses alive; "
-                "Gemma's follow-up answers barely reuse that parse circuit."
-            ),
-            kind="neutral",
+        mo.md(
+            "Sparse feature circuits show that incremental garden-path preferences in Pythia "
+            "mix syntax with heuristics and keep both parses alive; Gemma's follow-up answers "
+            "barely reuse that parse circuit."
         ),
         mo.md("### How much of the behaviour do these circuits capture?"),
         apply_plotly_theme(faithfulness_anchor_figure(), theme),
@@ -1768,13 +1811,11 @@ for the features we *do* have.
 
 1. **RQ1 (Pythia-70m):** Clamping annotated syntactic features flips the preferred reading;
    random controls do not. Circuits mix genuine syntactic detectors with shallow lexical
-   heuristics, and limited faithfulness means they are part of the mechanism, not all of it.
-2. **RQ2 (Pythia-70m):** Features for *both* readings stay active on ambiguous input (mean
-   activations 0.27–0.41, over half of each group firing) — parallel maintenance rather than a
-   single committed parse.
-3. **RQ3 (Gemma-2-2b):** Question-answering circuits share almost no features with parsing
-   circuits (IoU ≤ 0.2%) and lean on yes/no heuristics — neither human-style repair nor
-   reanalysis.
+   heuristics; limited faithfulness means they are part of the mechanism, not all of it.
+2. **RQ2 (Pythia-70m):** Features for *both* readings stay active on ambiguous input — parallel
+   maintenance rather than a single committed parse.
+3. **RQ3 (Gemma-2-2b):** QA circuits share almost no features with parsing circuits
+   (IoU ≤ 0.2%) and lean on yes/no heuristics — neither repair nor reanalysis.
 """
         ),
         mo.md(

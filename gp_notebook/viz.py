@@ -71,18 +71,36 @@ def provenance_row_html(badges: list[tuple[str, str]], note: str = "") -> str:
     return f'<div class="gp-badge-row">{pills}{note_html}</div>'
 
 
-def paper_figure_html(png_path: str, caption: str, *, max_width: str = "920px") -> str:
-    """Embed one of the paper's original figures (from the arXiv source) with a caption."""
+def paper_figure_html(
+    png_path: str,
+    caption: str,
+    *,
+    max_width: str = "920px",
+) -> str:
+    """Embed a paper figure PNG with caption, or a graceful fallback if missing."""
     import base64
     from pathlib import Path
 
-    data = base64.b64encode(Path(png_path).read_bytes()).decode("ascii")
+    path = Path(png_path)
+    if not path.is_file():
+        return f"""
+<figure class="gp-paper-figure" style="max-width:{max_width};margin:0.75rem 0;">
+  <div style="padding:1.25rem;border:1px dashed var(--gp-border);border-radius:10px;
+              background:var(--gp-surface);color:var(--gp-muted);font-family:var(--gp-font-body);">
+    Paper figure unavailable at <code>{html.escape(path.name)}</code>.
+  </div>
+  <figcaption style="font-size:0.82rem;color:var(--gp-muted);margin-top:0.35rem;font-family:var(--gp-font-body);">
+    {html.escape(caption)}
+  </figcaption>
+</figure>
+"""
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"""
 <figure class="gp-paper-figure" style="max-width:{max_width};margin:0.75rem 0;">
   <img src="data:image/png;base64,{data}" alt="{html.escape(caption, quote=True)}"
        style="width:100%;height:auto;border-radius:10px;border:1px solid var(--gp-border,var(--gp-status-border,#e2e8f0));background:#fff;" />
   <figcaption style="font-size:0.82rem;color:var(--gp-muted,var(--gp-status-muted,#64748b));margin-top:0.35rem;font-family:var(--gp-font-body);">
-    {caption}
+    {html.escape(caption)}
   </figcaption>
 </figure>
 """
@@ -118,38 +136,141 @@ def notebook_header_compact_html() -> str:
 
 
 def notebook_hero_html() -> str:
-    """Return the full intro hero with badge, subtitle, and garden-path fork SVG."""
+    """Return a full-bleed intro hero: brand, one headline, one sentence, fork atmosphere."""
     gp = theme_color("gp")
     non_gp = theme_color("non_gp")
     highlight = theme_color("highlight")
-    highlight_soft = theme_color("highlight_soft")
     muted = theme_color("muted")
     return f"""
 <div class="gp-hero">
-  <div class="gp-hero__grid">
-    <div>
-      <div class="gp-hero__badge">molab Notebook Competition #2</div>
-      <h1 class="gp-hero__title">Garden Path Mechanisms in Language Models</h1>
-      <p class="gp-hero__subtitle">
-        Reverse-engineer how Pythia-70m incrementally parses ambiguous sentences —
-        then <strong>causally flip</strong> which reading the model prefers using
-        sparse autoencoder features.
-      </p>
-      {_PAPER_LINKS_HTML}
-    </div>
-    <div class="gp-hero__diagram">
-      <svg viewBox="0 0 280 140" width="100%" role="img"
-           aria-label="Two syntactic readings diverge at an ambiguous noun">
-        <text x="140" y="14" text-anchor="middle" font-size="11" class="gp-hero__svg-muted">Ambiguous noun</text>
-        <line x1="140" y1="30" x2="140" y2="55" stroke="{muted}" stroke-width="2"/>
-        <circle cx="140" cy="28" r="8" fill="{highlight_soft}" stroke="{highlight}" stroke-width="2"/>
-        <path d="M140 55 L60 120" stroke="{gp}" stroke-width="2.5" fill="none"/>
-        <path d="M140 55 L220 120" stroke="{non_gp}" stroke-width="2.5" fill="none"/>
-        <text x="28" y="132" font-size="11" fill="{gp}">GP: object → comma</text>
-        <text x="158" y="132" font-size="11" fill="{non_gp}">non-GP: subject → was</text>
+  <div class="gp-hero__plane">
+    <div class="gp-hero__diagram" aria-hidden="true">
+      <svg viewBox="0 0 1100 340" preserveAspectRatio="xMaxYMid meet" role="presentation">
+        <defs>
+          <linearGradient id="gpForkGp" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="{gp}" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="{gp}" stop-opacity="0.35"/>
+          </linearGradient>
+          <linearGradient id="gpForkNon" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="{non_gp}" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="{non_gp}" stop-opacity="0.35"/>
+          </linearGradient>
+        </defs>
+        <!-- Fork sits on the right, shifted slightly left of the far edge. -->
+        <circle cx="820" cy="110" r="9" fill="{highlight}" opacity="0.9"/>
+        <line x1="820" y1="36" x2="820" y2="110" stroke="{muted}" stroke-width="2.5" opacity="0.55"/>
+        <path class="gp-hero__fork-branch" d="M820 110 C740 150, 680 190, 640 230"
+              stroke="url(#gpForkGp)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <path class="gp-hero__fork-branch gp-hero__fork-branch--delay"
+              d="M820 110 C900 150, 955 190, 985 230"
+              stroke="url(#gpForkNon)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <text x="640" y="252" font-size="15" fill="{gp}" font-weight="700"
+              font-family="var(--gp-font-body)" text-anchor="middle">GP · object → ,</text>
+        <text x="985" y="252" font-size="15" fill="{non_gp}" font-weight="700"
+              font-family="var(--gp-font-body)" text-anchor="middle">non-GP · subject → was</text>
       </svg>
     </div>
+    <div class="gp-hero__grid">
+      <div>
+        <div class="gp-hero__badge">Hanna &amp; Mueller · NAACL 2025</div>
+        <h1 class="gp-hero__title">Garden Path Mechanisms</h1>
+        <p class="gp-hero__headline">
+          Sparse features that tip an ambiguous parse — and a second circuit that barely reuses them.
+        </p>
+        <p class="gp-hero__subtitle">
+          An interactive reading of how Pythia-70m maintains competing syntactic readings,
+          then how Gemma-2-2b answers follow-ups without repairing the parse circuit.
+        </p>
+        {_PAPER_LINKS_HTML}
+      </div>
+    </div>
   </div>
+</div>
+"""
+
+
+def fig1_walkthrough_html(step: str) -> str:
+    """Render one panel of the paper Figure 1 pipeline (locate / annotate / intervene)."""
+    gp = theme_color("gp")
+    non_gp = theme_color("non_gp")
+    accent = theme_color("accent")
+    ink = theme_color("ink")
+    muted = theme_color("muted")
+    surface = theme_color("surface_card")
+    border = theme_color("border")
+    soft = theme_color("highlight_soft")
+
+    panels: dict[str, tuple[str, str]] = {
+        "locate": (
+            f"""
+<svg viewBox="0 0 640 200" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-label="Locate features with AtP-IG">
+  <rect width="640" height="200" rx="8" fill="{surface}" stroke="{border}"/>
+  <text x="24" y="36" font-size="16" fill="{ink}" font-weight="700">1 · Locate</text>
+  <text x="24" y="58" font-size="12" fill="{muted}">Score each SAE feature by its effect on m = p(GP) − p(non-GP)</text>
+  <rect x="40" y="80" width="200" height="84" rx="8" fill="{soft}" stroke="{accent}"/>
+  <text x="140" y="118" text-anchor="middle" font-size="14" fill="{ink}">ambiguous prefix</text>
+  <text x="140" y="140" text-anchor="middle" font-size="12" fill="{muted}">… signed the bill</text>
+  <path d="M255 122 L310 122" stroke="{accent}" stroke-width="2.5"/>
+  <text x="400" y="100" font-size="13" fill="{gp}" font-weight="700">f_subject  ÎE = +0.52</text>
+  <text x="400" y="124" font-size="13" fill="{non_gp}" font-weight="700">f_object   ÎE = −0.39</text>
+  <text x="400" y="148" font-size="12" fill="{muted}">AtP-IG ranks the circuit</text>
+</svg>
+""",
+            "Attribution patching with integrated gradients finds the sparse features "
+            "that move the garden-path preference metric — cheaply approximating each "
+            "feature's causal contribution.",
+        ),
+        "annotate": (
+            f"""
+<svg viewBox="0 0 640 200" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-label="Annotate syntactic feature roles">
+  <rect width="640" height="200" rx="8" fill="{surface}" stroke="{border}"/>
+  <text x="24" y="36" font-size="16" fill="{ink}" font-weight="700">2 · Annotate</text>
+  <text x="24" y="58" font-size="12" fill="{muted}">Inspect activations and name what each feature detects</text>
+  <rect x="40" y="78" width="170" height="90" rx="8" fill="color-mix(in srgb, {gp} 18%, {surface})" stroke="{gp}"/>
+  <text x="125" y="112" text-anchor="middle" font-size="13" fill="{ink}" font-weight="700">subject detector</text>
+  <text x="125" y="134" text-anchor="middle" font-size="11" fill="{muted}">pro / anti reading</text>
+  <rect x="235" y="78" width="170" height="90" rx="8" fill="color-mix(in srgb, {non_gp} 18%, {surface})" stroke="{non_gp}"/>
+  <text x="320" y="112" text-anchor="middle" font-size="13" fill="{ink}" font-weight="700">object detector</text>
+  <text x="320" y="134" text-anchor="middle" font-size="11" fill="{muted}">NP complement</text>
+  <rect x="430" y="78" width="170" height="90" rx="8" fill="{soft}" stroke="{accent}"/>
+  <text x="515" y="112" text-anchor="middle" font-size="13" fill="{ink}" font-weight="700">clause-end</text>
+  <text x="515" y="134" text-anchor="middle" font-size="11" fill="{muted}">&amp; word detectors</text>
+</svg>
+""",
+            "High-importance features are often syntactic (subjects, objects, clause ends), "
+            "but word-level detectors and uninterpretable features also move m — the circuit "
+            "mixes genuine structure with shallow heuristics.",
+        ),
+        "intervene": (
+            f"""
+<svg viewBox="0 0 640 200" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-label="Clamp features to flip the reading">
+  <rect width="640" height="200" rx="8" fill="{surface}" stroke="{border}"/>
+  <text x="24" y="36" font-size="16" fill="{ink}" font-weight="700">3 · Intervene</text>
+  <text x="24" y="58" font-size="12" fill="{muted}">Upweight / ablate annotated groups — random controls do nothing</text>
+  <rect x="50" y="88" width="220" height="70" rx="8" fill="color-mix(in srgb, {gp} 22%, {surface})" stroke="{gp}"/>
+  <text x="160" y="118" text-anchor="middle" font-size="14" fill="{ink}">before: prefers GP</text>
+  <text x="160" y="140" text-anchor="middle" font-size="12" fill="{gp}" font-weight="700">p(,) &gt; p(was)</text>
+  <path d="M285 123 L345 123" stroke="{accent}" stroke-width="3"/>
+  <polygon points="345,117 360,123 345,129" fill="{accent}"/>
+  <rect x="370" y="88" width="220" height="70" rx="8" fill="color-mix(in srgb, {non_gp} 22%, {surface})" stroke="{non_gp}"/>
+  <text x="480" y="118" text-anchor="middle" font-size="14" fill="{ink}">after clamp: flips</text>
+  <text x="480" y="140" text-anchor="middle" font-size="12" fill="{non_gp}" font-weight="700">p(was) &gt; p(,)</text>
+</svg>
+""",
+            "Clamping the annotated syntactic groups flips the preferred continuation; "
+            "clamping the same number of random features does not. That is the paper's "
+            "causal verification of the circuit.",
+        ),
+    }
+    key = step if step in panels else "locate"
+    svg, caption = panels[key]
+    return f"""
+<div class="gp-fig1-panel">
+  {svg}
+  <p class="gp-fig1-panel__caption">{html.escape(caption)}</p>
 </div>
 """
 
